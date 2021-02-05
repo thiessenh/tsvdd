@@ -22,7 +22,7 @@ class TestKernel:
                 seq_2 = c_train_matrix[j]
                 res[i, j] = tga_dissimilarity(seq_1, seq_2, sigma, triangular)
         res = np.exp(-res)
-        res_cython = train_kernel_matrix(c_train_matrix, sigma, triangular)
+        res_cython = train_kernel_matrix(c_train_matrix, sigma, triangular, 'exp')
         np.testing.assert_array_equal(res, res_cython)
 
     @pytest.mark.parametrize("n_train", [10, 30, 50])
@@ -43,5 +43,5 @@ class TestKernel:
                 seq_2 = c_train_matrix[j]
                 res[i, j] = tga_dissimilarity(seq_1, seq_2, sigma, triangular)
         res = np.exp(-res)
-        res_cython = test_kernel_matrix(c_train_matrix, c_test_matrix, sigma, triangular)
+        res_cython = test_kernel_matrix(c_train_matrix, c_test_matrix, sigma, triangular, 'exp')
         np.testing.assert_array_equal(res, res_cython)

@@ -32,7 +32,7 @@ int seqOffset_test(int i){
 * sigma is the bandwidth parameter for the gauss-ish kernel
 * triangular is the parameter to trade off global alignment vs. optimal alignment, i.e., more diagonal alignment
 */
-void trainGramMatrix(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
+void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
 {
     g_nInstances = nInstances;
     g_nLength_train = nLength;
@@ -81,7 +81,7 @@ void trainGramMatrix(double *seq, int nInstances, int nLength, int nDim, double 
 
 }
 
-void testGramMatrix(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test,int nDim, double *res, double sigma, int triangular)
+void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test,int nDim, double *res, double sigma, int triangular)
 {
     g_nInstances = nInstances_train;
     g_nLength_test = nLength_test;
@@ -133,4 +133,24 @@ void testGramMatrix(double *train, double *test, int nInstances_train, int nInst
     free(cache_train);
 }
 
+//void diagonalGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
+//{
+//    g_nInstances = nInstances;
+//    g_nLength_train = nLength;
+//    g_nDim = nDim;
+//
+//    int i = 0;
+//
+//    // compute GAK with itself
+//    #pragma omp parallel for private(i)
+//    for(i = 0; i < nInstances; i++){
+//        int seq_i = seqOffset_train(i);
+//        // compute the global alignment kernel value
+//        double ga11 = logGAK((double*) &seq[seq_i], (double*) &seq[seq_i], nLength, nLength, nDim, sigma, triangular);
+//        double nf = 0.5*(ga11+ga11);
+//        double mlnk = nf - ga11;
+//          res[i] = mlnk;
+//    }
+//
+//}
 

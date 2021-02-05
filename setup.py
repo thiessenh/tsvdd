@@ -20,6 +20,7 @@ global_alignment = setuptools.extension.Extension(
 
 libsvdd = distutils.extension.Extension(
     'tsvdd.libsvm',
+    extra_compile_args=['-O3'],
     sources=['src/libsvm/svm.cpp'])
 
 setup(

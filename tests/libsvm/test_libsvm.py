@@ -3,17 +3,8 @@ import numpy as np
 from sklearn.datasets import make_circles
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.model_selection import train_test_split
+from tsvdd.utils import svmlib_kernel_format
 import pytest
-
-
-def svmlib_kernel_format(kernel_matrix):
-    n_instances_test = kernel_matrix.shape[0]
-    n_instances_train = kernel_matrix.shape[1]
-    x_tmp = np.zeros((n_instances_test, n_instances_train + 1), dtype=np.float64)
-    x_tmp[:, 1:] = kernel_matrix
-    x_tmp[:, :1] = np.arange(n_instances_test, dtype=np.int64)[:, np.newaxis] + 1
-    x_libsvm = [list(row) for row in x_tmp]
-    return x_libsvm
 
 
 class TestKernel:
