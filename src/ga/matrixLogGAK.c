@@ -38,12 +38,13 @@ void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, doub
     g_nLength_train = nLength;
     g_nDim = nDim;
 
-    int i = 0;
     double *cache = (double *) malloc(nInstances * sizeof(double));
+    int j = 0;
+    int i = 0;
 
     if (cache == NULL) {
         printf("Error! memory not allocated.");
-        exit(0);
+        exit(1);
     }
     // compute GAK with itself
 #pragma omp parallel for private(i)
@@ -51,10 +52,8 @@ void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, doub
         int seq_i = seqOffset_train(i);
         cache[i] = logGAK((double *) &seq[seq_i], (double *) &seq[seq_i], nLength, nLength, nDim, sigma, triangular);
     }
-
 #pragma omp parallel for private(i)
     for (i = 0; i < nInstances; i++) {
-        int j = 0;
         int seq_i = seqOffset_train(i);
         for (j = i; j < nInstances; j++) {
             int seq_j = seqOffset_train(j);
@@ -94,7 +93,7 @@ void testGramMatrixExp(double *train, double *test, int nInstances_train, int nI
 
     if (cache_train == NULL || cache_test == NULL) {
         printf("Error! memory not allocated.");
-        exit(0);
+        exit(1);
     }
     // compute GAK with itself
 #pragma omp parallel for private(i)

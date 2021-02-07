@@ -45,4 +45,4 @@ setup(
             'pytest-cov']},
     include_package_data=True,
     python_requires=">=3.7",
-    ext_modules=cythonize([global_alignment,libsvdd]))
+    ext_modules=cythonize([global_alignment, libsvdd]))

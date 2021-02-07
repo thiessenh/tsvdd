@@ -12,13 +12,11 @@ LICENSE: cf. logGAK.c
 import numpy as np
 cimport numpy as np
 
-cdef extern from "logGAK.c" nogil:
+cdef extern from "logGAK.h" nogil:
     double logGAK(double *seq1 , double *seq2, int nX, int nY, int dimvect, double sigma, int triangular)
 
-cdef extern from "matrixlogGAK.c" nogil:
+cdef extern from "matrixLogGAK.h" nogil:
     void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
-
-cdef extern from "matrixlogGAK.c" nogil:
     void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test, int nDim, double *res, double sigma, int triangular)
 
 # cdef extern from 'matrixLogGak.c' nogil:
