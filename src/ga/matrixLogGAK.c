@@ -1,10 +1,4 @@
-
-#include <stdlib.h>
-#include <logGAK.h>
-#include <omp.h>
-#include <stdio.h>
-#include <matrixLogGAK.h>
-
+#include "matrixLogGAK.h"
 
 int g_nInstances;
 int g_nLength_train;
@@ -52,7 +46,7 @@ void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, doub
         int seq_i = seqOffset_train(i);
         cache[i] = logGAK((double *) &seq[seq_i], (double *) &seq[seq_i], nLength, nLength, nDim, sigma, triangular);
     }
-#pragma omp parallel for private(i)
+#pragma omp parallel for private(i,j)
     for (i = 0; i < nInstances; i++) {
         int seq_i = seqOffset_train(i);
         for (j = i; j < nInstances; j++) {
@@ -75,8 +69,6 @@ void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, doub
         }
     }
     free(cache);
-
-
 }
 
 void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train,

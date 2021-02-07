@@ -19,9 +19,6 @@ cdef extern from "matrixLogGAK.h" nogil:
     void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
     void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test, int nDim, double *res, double sigma, int triangular)
 
-# cdef extern from 'matrixLogGak.c' nogil:
-#     void diagonalGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
-
 def tga_dissimilarity(np.ndarray[np.double_t,ndim=2] seq1, np.ndarray[np.double_t,ndim=2] seq2, double sigma, int triangular):
     """ Compute the Triangular Global Alignment (TGA) dissimilarity score
 

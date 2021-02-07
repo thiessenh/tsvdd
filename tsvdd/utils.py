@@ -27,8 +27,16 @@ def sampled_gak_sigma(X, n_samples, random_state: np.random.RandomState = None, 
     :param multiplier: list with multipliers for sigmas
     :return:
     """
-    n_instances, n_length = X.shape
-    random_state = np.random.MT19937() if random_state is None else random_state
+    if len(X.shape) == 3:
+        n_instances, n_length, n_dim = X.shape
+        if n_dim == 1:
+            _X = np.reshape(X, (n_instances, n_length))
+        else:
+            raise NotImplementedError()
+    else:
+        n_instances, n_length = X.shape
+        _X = X
+    random_state = np.random.RandomState() if random_state is None else random_state
     replace = True if n_samples > n_instances else False
 
     medians = np.empty(n_samples)
@@ -37,7 +45,7 @@ def sampled_gak_sigma(X, n_samples, random_state: np.random.RandomState = None, 
         x = random_state.choice(n_instances, replace=replace)
         y = random_state.choice(n_instances, replace=replace)
         for l in range(n_length):
-            norms[l] = np.linalg.norm(X[x][l] - X[y][l])
+            norms[l] = np.linalg.norm(_X[x][l] - _X[y][l])
 
         medians[i] = np.median(norms)
     median_sampled = np.median(medians)

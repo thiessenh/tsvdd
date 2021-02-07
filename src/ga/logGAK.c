@@ -47,14 +47,7 @@
  * 
 
  */
-
-
-#include <stdlib.h>
-#include <math.h>
-#include <logGAK.h>
-/* Useful constants */
-#define LOG0 -10000          /* log(0) */
-#define LOGP(x, y) (((x)>(y))?(x)+log1p(exp((y)-(x))):(y)+log1p(exp((x)-(y))))
+#include "logGAK.h"
 
 /* Implementation of the (Triangular) global alignment kernel.
  *

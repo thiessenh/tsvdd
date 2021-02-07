@@ -11,7 +11,7 @@ import numpy
 
 global_alignment = setuptools.extension.Extension(
     "tsvdd.ga",
-    sources=["tsvdd/ga.pyx"],
+    sources=["tsvdd/ga.pyx", "src/ga/logGAK.c", "src/ga/matrixLogGAK.c"],
     include_dirs=[numpy.get_include(), 'src/ga/'],
     extra_compile_args=['-fopenmp', '-O3'],
     # libraries=['fftw3', 'fftw3f', 'fftw3l', 'fftw3_threads', 'fftw3f_threads', 'fftw3l_threads'],

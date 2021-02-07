@@ -3,7 +3,7 @@ from .libsvm import svmutil
 import numpy as np
 import pandas as pd
 from .ga import test_kernel_matrix, train_kernel_matrix
-from .utils import svmlib_kernel_format
+from .utils import svmlib_kernel_format, sampled_gak_sigma
 
 
 class SVDD:
@@ -29,6 +29,11 @@ class SVDD:
         if self.C is None:
             self.C = 1 / (self.outlier_ratio * n_instances)
         self.X_fit = self._check_X(X)
+        if self.sigma == 'auto':
+            sigmas = sampled_gak_sigma(X, 100)
+            self.sigma = sigmas[3]
+        if self.triangular == 'auto':
+            self.triangular = .5 * X.shape[1]
         gram_matrix = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
         gram_matrix_libsvm = svmlib_kernel_format(gram_matrix)
         prob = svmutil.svm_problem(np.ones(n_instances), gram_matrix_libsvm, isKernel=True)
