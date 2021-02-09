@@ -8,7 +8,7 @@ from .utils import svmlib_kernel_format, sampled_gak_sigma
 
 class SVDD:
 
-    def __init__(self, kernel='tga', outlier_ratio=0.05, C=None, sigma='auto', triangular='auto', normalization_method='exp'):
+    def __init__(self, kernel='tga', outlier_ratio=0.05, C=None, sigma='auto', triangular='auto', tolerance=10e-5, normalization_method='exp'):
         self.model = None
         self.X_fit = None
         self.fit_shape = None
@@ -18,6 +18,9 @@ class SVDD:
         self.normalization_method = normalization_method
         self.C = C
         self.outlier_ratio = outlier_ratio
+        self.tolerance = tolerance
+        if tolerance < 10e-5:
+            raise Warning(f'Small tolerance < {tolerance} might result in long training times.')
 
     def __str__(self):
         return f'SVDD(kernel={self.kernel}, outlier_ratio={self.outlier_ratio}, C={self.C}, sigma={self.sigma},' \
@@ -37,7 +40,7 @@ class SVDD:
         gram_matrix = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
         gram_matrix_libsvm = svmlib_kernel_format(gram_matrix)
         prob = svmutil.svm_problem(np.ones(n_instances), gram_matrix_libsvm, isKernel=True)
-        param = svmutil.svm_parameter(f'-s 5 -t 4 -c {self.C} -e {np.finfo(np.float64).eps}')
+        param = svmutil.svm_parameter(f'-s 5 -t 4 -c {self.C} -e {self.tolerance}')
         self.model = svmutil.svm_train(prob, param)
 
     def fit_predict(self, X):

@@ -93,6 +93,7 @@ def gen_svm_nodearray(xi, feature_max=None, isKernel=None):
 		max_idx = index_range[-1]
 	return ret, max_idx
 
+
 class svm_problem(Structure):
 	_names = ["l", "y", "x"]
 	_types = [c_int, POINTER(c_double), POINTER(POINTER(svm_node))]
