@@ -1,2 +1,4 @@
 from .SVDD import SVDD
-__all__ = ['SVDD', 'utils']
+from .alSVDD import alSVDD
+
+__all__ = ['SVDD', 'alSVDD', 'utils']

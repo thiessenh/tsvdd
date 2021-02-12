@@ -83,7 +83,7 @@ def evaluations(ty, pv):
 		SCC = float('nan')
 	return (ACC, MSE, SCC)
 
-def svm_train(arg1, arg2=None, arg3=None):
+def svm_train(arg1, arg2=None, arg3=None, arg4=None):
 	"""
 	svm_train(y, x [, options]) -> model | ACC | MSE
 	svm_train(prob [, options]) -> model | ACC | MSE
@@ -125,7 +125,9 @@ def svm_train(arg1, arg2=None, arg3=None):
 		assert isinstance(arg2, (list, tuple))
 		y, x, options = arg1, arg2, arg3
 		param = svm_parameter(options)
-		prob = svm_problem(y, x, isKernel=(param.kernel_type == PRECOMPUTED))
+		if arg4 is not None:
+			W = arg4
+		prob = svm_problem(y, x, isKernel=(param.kernel_type == PRECOMPUTED), W=W)
 	elif isinstance(arg1, svm_problem):
 		prob = arg1
 		if isinstance(arg2, svm_parameter):

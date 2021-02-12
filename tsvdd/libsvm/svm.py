@@ -95,14 +95,18 @@ def gen_svm_nodearray(xi, feature_max=None, isKernel=None):
 
 
 class svm_problem(Structure):
-	_names = ["l", "y", "x"]
-	_types = [c_int, POINTER(c_double), POINTER(POINTER(svm_node))]
+	_names = ["l", "y", "x", "W"]
+	_types = [c_int, POINTER(c_double), POINTER(POINTER(svm_node)), POINTER(c_double)]
 	_fields_ = genFields(_names, _types)
 
-	def __init__(self, y, x, isKernel=None):
+	def __init__(self, y, x, isKernel=None, W=None):
 		if len(y) != len(x):
 			raise ValueError("len(y) != len(x)")
+		if W is not None and len(W) != len(x):
+			raise ValueError("len(W) != len(x)")
 		self.l = l = len(y)
+		if W is None:
+			W = [1] * l
 
 		max_idx = 0
 		x_space = self.x_space = []
@@ -111,6 +115,10 @@ class svm_problem(Structure):
 			x_space += [tmp_xi]
 			max_idx = max(max_idx, tmp_idx)
 		self.n = max_idx
+
+		self.W = (c_double * l)()
+		for i, Wi in enumerate(W):
+			self.W[i] = Wi
 
 		self.y = (c_double * l)()
 		for i, yi in enumerate(y): self.y[i] = yi
