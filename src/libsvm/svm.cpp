@@ -366,7 +366,6 @@ double Kernel::k_function(const svm_node *x, const svm_node *y,
 		case SIGMOID:
 			return tanh(param.gamma*dot(x,y)+param.coef0);
 		case PRECOMPUTED:  //x: test (validation), y: SV
-		    // HT: This makes no sense whatsoever, what the hell.
 			return x[(int)(y->value)].value;
 		default:
 			return 0;  // Unreachable 
@@ -402,7 +401,6 @@ public:
 		double upper_bound_p;
 		double upper_bound_n;
 		double r;	// for Solver_NU
-		double r_square;
 	};
 
 	void Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
@@ -1746,7 +1744,6 @@ static void solve_svdd(
 		si->obj = (obj + rho/l)*C;
 		si->rho = rho / (l*l);
 	}
-	si->r_square = r_square;
 
 	info("R^2 = %f\n",r_square);
 	if(C > 1 && param->svm_type == SVDD)
@@ -1806,7 +1803,6 @@ struct decision_function
 {
 	double *alpha;
 	double rho;
-	double r_square;
 };
 
 static decision_function svm_train_one(
@@ -1873,7 +1869,6 @@ static decision_function svm_train_one(
 	decision_function f;
 	f.alpha = alpha;
 	f.rho = si.rho;
-	f.r_square = si.r_square;
 	return f;
 }
 
@@ -2137,8 +2132,7 @@ static void svm_binary_svc_probability(
 			struct svm_model *submodel = svm_train(&subprob,&subparam);
 			for(j=begin;j<end;j++)
 			{
-			    // HT:
-				svm_predict_values(submodel,prob->x[perm[j]],&(dec_values[perm[j]]), 0);
+				svm_predict_values(submodel,prob->x[perm[j]],&(dec_values[perm[j]]));
 				// ensure +1 -1 order; reason not using CV subroutine
 				dec_values[perm[j]] *= submodel->label[0];
 			}		
@@ -2297,7 +2291,6 @@ svm_model *svm_train(const svm_problem *prob, const svm_parameter *param)
 		decision_function f = svm_train_one(prob,param,0,0);
 		model->rho = Malloc(double,1);
 		model->rho[0] = f.rho;
-		model->r_square = f.r_square;
 
 		int nSV = 0;
 		int i;
@@ -2648,16 +2641,6 @@ int svm_get_nr_class(const svm_model *model)
 	return model->nr_class;
 }
 
-double svm_get_r2(const svm_model *model)
-{
-	return model->r_square;
-}
-
-double svm_get_rho(const svm_model *model)
-{
-	return model->rho[0];
-}
-
 void svm_get_labels(const svm_model *model, int* label)
 {
 	if (model->label != NULL)
@@ -2689,7 +2672,7 @@ double svm_get_svr_probability(const svm_model *model)
 	}
 }
 
-double svm_predict_values(const svm_model *model, const svm_node *x, double* dec_values, double k_xx)
+double svm_predict_values(const svm_model *model, const svm_node *x, double* dec_values)
 {
 	int i;
 	if(model->param.svm_type == ONE_CLASS ||
@@ -2710,17 +2693,14 @@ double svm_predict_values(const svm_model *model, const svm_node *x, double* dec
 	}
 	else if (model->param.svm_type == SVDD)
 	{
-	    //printf("K_xx: %f\n", k_xx);
 		// Compute distance from center of hypersphere
 		// rho = (a^Ta - \bar{R})/2
 		double *sv_coef = model->sv_coef[0];
-
-		// HT
-		// double tmp_value = Kernel::k_function(x,x,model->param); // x^T x - 2 x^T a
+		double tmp_value = Kernel::k_function(x,x,model->param); // x^T x - 2 x^T a
 		for(int i=0;i<model->l;i++)
-			k_xx -= 2 * sv_coef[i] * Kernel::k_function(x,model->SV[i],model->param);
+			tmp_value -= 2 * sv_coef[i] * Kernel::k_function(x,model->SV[i],model->param);
 
-		*dec_values = k_xx + 2*model->rho[0];
+		*dec_values = tmp_value + 2*model->rho[0];
 		return (*dec_values<=0?1:-1);
 	}
 	else
@@ -2791,7 +2771,7 @@ double svm_predict(const svm_model *model, const svm_node *x)
 		dec_values = Malloc(double, 1);
 	else 
 		dec_values = Malloc(double, nr_class*(nr_class-1)/2);
-	double pred_result = svm_predict_values(model, x, dec_values, 0);
+	double pred_result = svm_predict_values(model, x, dec_values);
 	free(dec_values);
 	return pred_result;
 }
@@ -2805,7 +2785,7 @@ double svm_predict_probability(
 		int i;
 		int nr_class = model->nr_class;
 		double *dec_values = Malloc(double, nr_class*(nr_class-1)/2);
-		svm_predict_values(model, x, dec_values, 0);
+		svm_predict_values(model, x, dec_values);
 
 		double min_prob=1e-7;
 		double **pairwise_prob=Malloc(double *,nr_class);
@@ -3255,10 +3235,6 @@ const char *svm_check_parameter(const svm_problem *prob, const svm_parameter *pa
 	// svm_type
 
 	int svm_type = param->svm_type;
-	//HT: SVDD only
-    if(svm_type != SVDD)
-    return "Only SVDD is supported";
-
 	if(svm_type != C_SVC &&
 	   svm_type != NU_SVC &&
 	   svm_type != ONE_CLASS &&
@@ -3267,14 +3243,11 @@ const char *svm_check_parameter(const svm_problem *prob, const svm_parameter *pa
 	   svm_type != SVDD &&
 	   svm_type != R2 &&
 	   svm_type != R2q)
-    return "unknown svm type";
+		return "unknown svm type";
 	
 	// kernel_type, degree
 	
 	int kernel_type = param->kernel_type;
-	//HT: SVDD only
-	if(kernel_type != PRECOMPUTED)
-		return "Only PRECOMPUTED is supported";
 	if(kernel_type != LINEAR &&
 	   kernel_type != POLY &&
 	   kernel_type != RBF &&
