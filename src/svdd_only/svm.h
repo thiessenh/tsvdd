@@ -61,6 +61,7 @@ struct svm_model
 	double *probA;		/* pariwise probability information */
 	double *probB;
 	int *sv_indices;        /* sv_indices[0,...,nSV-1] are values in [1,...,num_traning_data] to indicate SVs in the training set */
+    double r_square;
 
 	/* for classification only */
 
@@ -84,6 +85,9 @@ void svm_get_labels(const struct svm_model *model, int *label);
 void svm_get_sv_indices(const struct svm_model *model, int *sv_indices);
 int svm_get_nr_sv(const struct svm_model *model);
 double svm_get_svr_probability(const struct svm_model *model);
+
+double svm_get_r2(const struct svm_model *model);
+double svm_get_rho(const struct svm_model *model);
 
 double svm_predict_values(const struct svm_model *model, const struct svm_node *x, double* dec_values, double K_xx);
 double svm_predict(const struct svm_model *model, const struct svm_node *x, double K_xx);

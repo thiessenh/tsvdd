@@ -375,6 +375,7 @@ public:
 		double rho;
 		double *upper_bound;
 		double r;	// for Solver_NU
+		double r_square;
 	};
 
 	void Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
@@ -1765,6 +1766,7 @@ static void solve_svdd(
 		si->obj = (obj + rho/l)*C;
 		si->rho = rho / (l*l);
 	}
+	si->r_square = r_square;
 
 	info("R^2 = %f\n",r_square);
 	if(C > 1 && param->svm_type == SVDD)
@@ -1827,6 +1829,7 @@ struct decision_function
 {
 	double *alpha;
 	double rho;
+	double r_square;
 };
 
 static decision_function svm_train_one(
@@ -1903,6 +1906,7 @@ static decision_function svm_train_one(
 	decision_function f;
 	f.alpha = alpha;
 	f.rho = si.rho;
+	f.r_square = si.r_square;
 	return f;
 }
 
@@ -2359,6 +2363,7 @@ svm_model *svm_train(const svm_problem *prob, const svm_parameter *param)
 		decision_function f = svm_train_one(prob,param,0,0);
 		model->rho = Malloc(double,1);
 		model->rho[0] = f.rho;
+		model->r_square = f.r_square;
 
 		int nSV = 0;
 		int i;
@@ -2725,6 +2730,16 @@ int svm_get_svm_type(const svm_model *model)
 int svm_get_nr_class(const svm_model *model)
 {
 	return model->nr_class;
+}
+
+double svm_get_r2(const svm_model *model)
+{
+	return model->r_square;
+}
+
+double svm_get_rho(const svm_model *model)
+{
+	return model->rho[0];
 }
 
 void svm_get_labels(const svm_model *model, int* label)
