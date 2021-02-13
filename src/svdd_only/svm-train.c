@@ -59,6 +59,7 @@ struct svm_parameter param;		// set by parse_command_line
 struct svm_problem prob;		// set by read_problem
 struct svm_model *model;
 struct svm_node *x_space;
+char *weight_file;
 int cross_validation;
 int nr_fold;
 
@@ -253,6 +254,9 @@ void parse_command_line(int argc, char **argv, char *input_file_name, char *mode
 				param.weight_label[param.nr_weight-1] = atoi(&argv[i-1][2]);
 				param.weight[param.nr_weight-1] = atof(argv[i]);
 				break;
+			case 'W':
+				weight_file = argv[i];
+				break;
 			default:
 				fprintf(stderr,"Unknown option: -%c\n", argv[i-1][1]);
 				exit_with_help();
@@ -321,6 +325,7 @@ void read_problem(const char *filename)
 
 	prob.y = Malloc(double,prob.l);
 	prob.x = Malloc(struct svm_node *,prob.l);
+	prob.W = Malloc(double,prob.l);
 	x_space = Malloc(struct svm_node,elements);
 
 	max_index = 0;
@@ -337,6 +342,7 @@ void read_problem(const char *filename)
 		prob.y[i] = strtod(label,&endptr);
 		if(endptr == label || *endptr != '\0')
 			exit_input_error(i+1);
+		prob.W[i] = 1;
 
 		while(1)
 		{
@@ -392,4 +398,12 @@ void read_problem(const char *filename)
 		}
 
 	fclose(fp);
+
+	if(weight_file)
+	{
+		fp = fopen(weight_file,"r");
+		for(i=0;i<prob.l;i++)
+			fscanf(fp,"%lf",&prob.W[i]);
+	    fclose(fp);
+	}
 }
