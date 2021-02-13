@@ -121,10 +121,10 @@ int main(int argc, char **argv)
 	}
 	svm_destroy_param(&param);
 	free(prob.y);
+	for (int i = 0; i < prob.l; ++i)
+		free((prob.x+i)->values);
 	free(prob.x);
-	free(x_space);
 	free(line);
-
 	return 0;
 }
 
@@ -290,7 +290,8 @@ void parse_command_line(int argc, char **argv, char *input_file_name, char *mode
 void read_problem(const char *filename)
 {
 	int max_index, inst_max_index, i;
-	size_t elements, j;
+	int feature_index;
+	double value;
 	FILE *fp = fopen(filename,"r");
 	char *endptr;
 	char *idx, *val, *label;
@@ -302,47 +303,47 @@ void read_problem(const char *filename)
 	}
 
 	prob.l = 0;
-	elements = 0;
 
 	max_line_len = 1024;
 	line = Malloc(char,max_line_len);
-	while(readline(fp)!=NULL)
+	max_index = 1;
+	inst_max_index = 0;
+	while(readline(fp) != NULL)
 	{
-		char *p = strtok(line," \t"); // label
-
-		// features
-		while(1)
+		char *p;
+		p = strrchr(line, ':');
+		if(p != NULL)
 		{
-			p = strtok(NULL," \t");
-			if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
-				break;
-			++elements;
+			while(*p != ' ' && *p != '\t' && p > line)
+				p--;
+			if(p > line)
+			 	inst_max_index = (int) strtol(p,&endptr,10);
 		}
-		++elements;
+		if(inst_max_index > max_index)
+		max_index = inst_max_index;
 		++prob.l;
 	}
+
 	rewind(fp);
 
 	prob.y = Malloc(double,prob.l);
-	prob.x = Malloc(struct svm_node *,prob.l);
 	prob.W = Malloc(double,prob.l);
-	x_space = Malloc(struct svm_node,elements);
+	prob.x = Malloc(struct svm_node,prob.l);
 
-	max_index = 0;
-	j=0;
 	for(i=0;i<prob.l;i++)
 	{
+		int *d;
+		(prob.x+i)->values = Malloc(double,max_index+1);
+		(prob.x+i)->dim = 0;
+
 		inst_max_index = -1; // strtol gives 0 if wrong format, and precomputed kernel has <index> start from 0
 		readline(fp);
-		prob.x[i] = &x_space[j];
-		label = strtok(line," \t\n");
-		if(label == NULL) // empty line
-			exit_input_error(i+1);
 
+		label = strtok(line," \t");
 		prob.y[i] = strtod(label,&endptr);
-		if(endptr == label || *endptr != '\0')
+		if(endptr == label)
 			exit_input_error(i+1);
-		prob.W[i] = 1;
+        prob.W[i] = 1;
 
 		while(1)
 		{
@@ -353,24 +354,24 @@ void read_problem(const char *filename)
 				break;
 
 			errno = 0;
-			x_space[j].index = (int) strtol(idx,&endptr,10);
-			if(endptr == idx || errno != 0 || *endptr != '\0' || x_space[j].index <= inst_max_index)
+			feature_index = (int) strtol(idx,&endptr,10);
+			if(endptr == idx || errno != 0 || *endptr != '\0' || feature_index <= inst_max_index)
 				exit_input_error(i+1);
 			else
-				inst_max_index = x_space[j].index;
+				inst_max_index = feature_index;
 
 			errno = 0;
-			x_space[j].value = strtod(val,&endptr);
+			value = strtod(val,&endptr);
 			if(endptr == val || errno != 0 || (*endptr != '\0' && !isspace(*endptr)))
 				exit_input_error(i+1);
 
-			++j;
+			d = &((prob.x+i)->dim);
+			while (*d < feature_index)
+				(prob.x+i)->values[(*d)++] = 0.0;
+			(prob.x+i)->values[(*d)++] = value;
 		}
-
-		if(inst_max_index > max_index)
-			max_index = inst_max_index;
-		x_space[j++].index = -1;
 	}
+
 
 	if(param.gamma == 0 && max_index > 0)
 		param.gamma = 1.0/max_index;
@@ -385,12 +386,12 @@ void read_problem(const char *filename)
 	if(param.kernel_type == PRECOMPUTED)
 		for(i=0;i<prob.l;i++)
 		{
-			if (prob.x[i][0].index != 0)
+			if ((prob.x+i)->dim == 0 || (prob.x+i)->values[0] == 0.0)
 			{
 				fprintf(stderr,"Wrong input format: first column must be 0:sample_serial_number\n");
 				exit(1);
 			}
-			if ((int)prob.x[i][0].value <= 0 || (int)prob.x[i][0].value > max_index)
+			if ((int)(prob.x+i)->values[0] < 0 || (int)(prob.x+i)->values[0] > max_index)
 			{
 				fprintf(stderr,"Wrong input format: sample_serial_number out of range\n");
 				exit(1);

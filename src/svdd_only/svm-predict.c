@@ -94,34 +94,35 @@ void predict(FILE *input, FILE *output, FILE *input_svdd)
 	    else
             K_xx = (double)NULL;
 
+		x->dim = 0;
 		while(1)
 		{
-			if(i>=max_nr_attr-1)	// need one more for index = -1
-			{
-				max_nr_attr *= 2;
-				x = (struct svm_node *) realloc(x,max_nr_attr*sizeof(struct svm_node));
-			}
-
 			idx = strtok(NULL,":");
 			val = strtok(NULL," \t");
 
 			if(val == NULL)
 				break;
 			errno = 0;
-			x[i].index = (int) strtol(idx,&endptr,10);
-			if(endptr == idx || errno != 0 || *endptr != '\0' || x[i].index <= inst_max_index)
+			i = (int) strtol(idx,&endptr,10);
+			if(endptr == idx || errno != 0 || *endptr != '\0' || i <= inst_max_index)
 				exit_input_error(total+1);
 			else
-				inst_max_index = x[i].index;
+				inst_max_index = i;
 
 			errno = 0;
-			x[i].value = strtod(val,&endptr);
+			double v = strtod(val,&endptr);
 			if(endptr == val || errno != 0 || (*endptr != '\0' && !isspace(*endptr)))
 				exit_input_error(total+1);
 
-			++i;
+			while (i >= max_nr_attr)
+			{
+				max_nr_attr *= 2;
+				x->values = (double *) realloc(x->values, max_nr_attr*sizeof(double));
+			}
+			while (x->dim < i)
+				x->values[(x->dim)++] = 0.0;
+			x->values[(x->dim)++] = v;
 		}
-		x[i].index = -1;
 
 		if (predict_probability && (svm_type==C_SVC || svm_type==NU_SVC))
 		{
@@ -232,7 +233,8 @@ int main(int argc, char **argv)
 	else
 	input_svdd = NULL;
 
-	x = (struct svm_node *) malloc(max_nr_attr*sizeof(struct svm_node));
+	x = (struct svm_node *) malloc(sizeof(struct svm_node));
+	x->values = (double *) malloc(max_nr_attr*sizeof(double));
 	if(predict_probability)
 	{
 		if(svm_check_probability_model(model)==0)
@@ -249,6 +251,7 @@ int main(int argc, char **argv)
 
     predict(input,output, input_svdd);
 	svm_free_and_destroy_model(&model);
+	free(x->values);
 	free(x);
 	free(line);
 	fclose(input);
