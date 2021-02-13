@@ -42,7 +42,7 @@ void exit_input_error(int line_num)
 	exit(1);
 }
 
-void predict(FILE *input, FILE *output)
+void predict(FILE *input, FILE *output, FILE *input_svdd)
 {
 	int correct = 0;
 	int total = 0;
@@ -75,6 +75,7 @@ void predict(FILE *input, FILE *output)
 	line = (char *)malloc(max_line_len*sizeof(char));
 	while(readline(input) != NULL)
 	{
+	    double K_xx;
 		int i = 0;
 		double target_label, predict_label;
 		char *idx, *val, *label, *endptr;
@@ -87,6 +88,11 @@ void predict(FILE *input, FILE *output)
 		target_label = strtod(label,&endptr);
 		if(endptr == label || *endptr != '\0')
 			exit_input_error(total+1);
+
+        if(input_svdd)
+            fscanf(input_svdd,"%lf", &K_xx);
+	    else
+            K_xx = (double)NULL;
 
 		while(1)
 		{
@@ -127,7 +133,7 @@ void predict(FILE *input, FILE *output)
 		}
 		else
 		{
-			predict_label = svm_predict(model,x);
+			predict_label = svm_predict(model,x, K_xx);
 			fprintf(output,"%.17g\n",predict_label);
 		}
 
@@ -169,7 +175,7 @@ void exit_with_help()
 
 int main(int argc, char **argv)
 {
-	FILE *input, *output;
+	FILE *input, *output, *input_svdd;
 	int i;
 	// parse options
 	for(i=1;i<argc;i++)
@@ -214,6 +220,18 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	if ((model->param).svm_type && (model->param).kernel_type == 4)
+	{
+        input_svdd = fopen(argv[i+3],"r");
+        if(input_svdd == NULL)
+        {
+            fprintf(stderr,"can't open input_svdd file %s\n",argv[i+3]);
+            exit(1);
+        }
+	}
+	else
+	input_svdd = NULL;
+
 	x = (struct svm_node *) malloc(max_nr_attr*sizeof(struct svm_node));
 	if(predict_probability)
 	{
@@ -229,11 +247,12 @@ int main(int argc, char **argv)
 			info("Model supports probability estimates, but disabled in prediction.\n");
 	}
 
-	predict(input,output);
+    predict(input,output, input_svdd);
 	svm_free_and_destroy_model(&model);
 	free(x);
 	free(line);
 	fclose(input);
 	fclose(output);
+	fclose(input_svdd);
 	return 0;
 }

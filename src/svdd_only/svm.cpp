@@ -2194,7 +2194,7 @@ static void svm_binary_svc_probability(
 			struct svm_model *submodel = svm_train(&subprob,&subparam);
 			for(j=begin;j<end;j++)
 			{
-				svm_predict_values(submodel,prob->x[perm[j]],&(dec_values[perm[j]]));
+				svm_predict_values(submodel,prob->x[perm[j]],&(dec_values[perm[j]]), NULL);
 				// ensure +1 -1 order; reason not using CV subroutine
 				dec_values[perm[j]] *= submodel->label[0];
 			}		
@@ -2731,7 +2731,7 @@ void svm_cross_validation(const svm_problem *prob, const svm_parameter *param, i
 		}
 		else
 			for(j=begin;j<end;j++)
-				target[perm[j]] = svm_predict(submodel,prob->x[perm[j]]);
+				target[perm[j]] = svm_predict(submodel,prob->x[perm[j]], NULL);
 		svm_free_and_destroy_model(&submodel);
 		free(subprob.x);
 		free(subprob.y);
@@ -2783,7 +2783,7 @@ double svm_get_svr_probability(const svm_model *model)
 	}
 }
 
-double svm_predict_values(const svm_model *model, const svm_node *x, double* dec_values)
+double svm_predict_values(const svm_model *model, const svm_node *x, double* dec_values, double K_xx)
 {
 	int i;
 	if(model->param.svm_type == ONE_CLASS ||
@@ -2807,7 +2807,11 @@ double svm_predict_values(const svm_model *model, const svm_node *x, double* dec
 		// Compute distance from center of hypersphere
 		// rho = (a^Ta - \bar{R})/2
 		double *sv_coef = model->sv_coef[0];
-		double tmp_value = Kernel::k_function(x,x,model->param); // x^T x - 2 x^T a
+		double tmp_value;
+        if (model->param.kernel_type == PRECOMPUTED)
+			tmp_value = K_xx;
+		else
+		    tmp_value = Kernel::k_function(x,x,model->param); // x^T x - 2 x^T a
 		for(int i=0;i<model->l;i++)
 			tmp_value -= 2 * sv_coef[i] * Kernel::k_function(x,model->SV[i],model->param);
 
@@ -2871,7 +2875,7 @@ double svm_predict_values(const svm_model *model, const svm_node *x, double* dec
 	}
 }
 
-double svm_predict(const svm_model *model, const svm_node *x)
+double svm_predict(const svm_model *model, const svm_node *x, double K_xx)
 {
 	int nr_class = model->nr_class;
 	double *dec_values;
@@ -2882,7 +2886,7 @@ double svm_predict(const svm_model *model, const svm_node *x)
 		dec_values = Malloc(double, 1);
 	else 
 		dec_values = Malloc(double, nr_class*(nr_class-1)/2);
-	double pred_result = svm_predict_values(model, x, dec_values);
+	double pred_result = svm_predict_values(model, x, dec_values, K_xx);
 	free(dec_values);
 	return pred_result;
 }
@@ -2896,7 +2900,7 @@ double svm_predict_probability(
 		int i;
 		int nr_class = model->nr_class;
 		double *dec_values = Malloc(double, nr_class*(nr_class-1)/2);
-		svm_predict_values(model, x, dec_values);
+		svm_predict_values(model, x, dec_values, NULL);
 
 		double min_prob=1e-7;
 		double **pairwise_prob=Malloc(double *,nr_class);
@@ -2929,7 +2933,7 @@ double svm_predict_probability(
 		return model->label[prob_max_idx];
 	}
 	else 
-		return svm_predict(model, x);
+		return svm_predict(model, x, NULL);
 }
 
 static const char *svm_type_table[] =
