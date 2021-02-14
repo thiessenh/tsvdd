@@ -1,7 +1,7 @@
 #ifndef _LIBSVM_H
 #define _LIBSVM_H
 
-#define LIBSVM_VERSION 322
+#define LIBSVM_VERSION 324
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,15 +11,16 @@ extern int libsvm_version;
 
 struct svm_node
 {
-	int index;
-	double value;
+	int dim;
+	double *values;
 };
 
 struct svm_problem
 {
 	int l;
 	double *y;
-	struct svm_node **x;
+	struct svm_node *x;
+	double *W; /* instance weight */
 };
 
 enum { C_SVC, NU_SVC, ONE_CLASS, EPSILON_SVR, NU_SVR, SVDD, R2, R2q };	/* svm_type */
@@ -54,12 +55,13 @@ struct svm_model
 	struct svm_parameter param;	/* parameter */
 	int nr_class;		/* number of classes, = 2 in regression/one class svm */
 	int l;			/* total #SV */
-	struct svm_node **SV;		/* SVs (SV[l]) */
+	struct svm_node *SV;		/* SVs (SV[l]) */
 	double **sv_coef;	/* coefficients for SVs in decision functions (sv_coef[k-1][l]) */
 	double *rho;		/* constants in decision functions (rho[k*(k-1)/2]) */
 	double *probA;		/* pariwise probability information */
 	double *probB;
 	int *sv_indices;        /* sv_indices[0,...,nSV-1] are values in [1,...,num_traning_data] to indicate SVs in the training set */
+    double r_square;
 
 	/* for classification only */
 
@@ -84,8 +86,8 @@ void svm_get_sv_indices(const struct svm_model *model, int *sv_indices);
 int svm_get_nr_sv(const struct svm_model *model);
 double svm_get_svr_probability(const struct svm_model *model);
 
-double svm_predict_values(const struct svm_model *model, const struct svm_node *x, double* dec_values);
-double svm_predict(const struct svm_model *model, const struct svm_node *x);
+double svm_predict_values(const struct svm_model *model, const struct svm_node *x, double* dec_values, double K_xx);
+double svm_predict(const struct svm_model *model, const struct svm_node *x, double K_xx);
 double svm_predict_probability(const struct svm_model *model, const struct svm_node *x, double* prob_estimates);
 
 void svm_free_model_content(struct svm_model *model_ptr);
