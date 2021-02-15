@@ -1720,7 +1720,6 @@ static void solve_svdd(
 	for(i=0;i<l;i++)
 	{
 		QD[i] = Q.get_QD()[i];
-		printf("QD[%d]: %f\n", i, QD[i]);
 		linear_term[i] = -0.5 * Q.get_QD()[i];
 		Cs[i] = C * prob->W[i];
 	}
@@ -2794,10 +2793,7 @@ double svm_predict_values(const svm_model *model, const svm_node *x, double* dec
 		    tmp_value = Kernel::k_function(x,x,model->param); // x^T x - 2 x^T a
 		for(int i=0;i<model->l;i++){
 			tmp_value -= 2 * sv_coef[i] * Kernel::k_function(x,model->SV+i,model->param);
-            //printf("x: %f", x->values[0]);
-		    //printf("SV: %d", (int) (model->SV+i)->values[0]);
 		    }
-		    //printf("\n");
 		*dec_values = tmp_value + 2*model->rho[0];
 		return (*dec_values<=0?1:-1);
 	}

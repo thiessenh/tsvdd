@@ -18,10 +18,18 @@ global_alignment = setuptools.extension.Extension(
     # library_dirs=['/some/path/to/include/'],# not needed for fftw unless it is installed in an unusual place
     extra_link_args=['-fopenmp'])
 
-libsvdd = distutils.extension.Extension(
-    'tsvdd.libsvm',
-    extra_compile_args=['-O3'],
-    sources=['src/libsvm/svm.cpp'])
+# libsvdd = distutils.extension.Extension(
+#     'tsvdd.libsvm',
+#     extra_compile_args=['-O3'],
+#     sources=['src/libsvm/svm.cpp'])
+
+libsvdd = setuptools.extension.Extension(
+    'tsvdd.libsvdd',
+    sources=["tsvdd/libsvdd.pyx", "src/libsvm/svm.cpp"],
+    # sources=["tsvdd/newsvmutil.pyx", "src/libsvm/svm.cpp", "src/libsvm/libsvm_helper.c"],
+    include_dirs=[numpy.get_include(), 'src/libsvm/'],
+    extra_compile_args=['-fopenmp', '-O3', '-std=c++11'],
+    extra_link_args=['-fopenmp',  '-lstdc++'])
 
 setup(
     name='tsvdd',
