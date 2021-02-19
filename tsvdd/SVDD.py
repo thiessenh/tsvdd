@@ -46,7 +46,7 @@ class SVDD:
         if kernel not in self._kernels:
             raise ValueError()
         if self.tol < 10e-7:
-            raise Warning(f'Small tolerance < {tolerance} might result in long training times.')
+            raise Warning(f'Small tolerance < {tol} might result in long training times.')
         if self.nu <= 0 or self.nu > 1:
             raise ValueError(f'Invalid parameter `nu={self.nu}`.')
 
@@ -60,6 +60,11 @@ class SVDD:
             n_instances, n_length, n_dim = X.shape
         elif X.ndim == 2:
             n_instances, n_length = X.shape
+        else:
+            raise ValueError()
+        if self.C < (1 / n_instances):
+            self.C = (1 / n_instances)
+            raise Warning(f'C too small, set C to {self.C}')
         self.X_fit = self._check_X(X)
         if self.kernel == 'tga':
             if self.sigma == 'auto':
@@ -72,7 +77,7 @@ class SVDD:
         y = np.ones(X.shape[0], dtype=np.float64)
 
         if self.kernel == 'tga':
-            gram_matrix = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
+            X = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
         elif self.kernel == 'precomputed':
             if n_instances != n_length:
                 raise ValueError("n_instances != n_length")
@@ -93,7 +98,6 @@ class SVDD:
             gamma=self.gamma, epsilon=self.epsilon)
         self.is_fit = True
 
-
     def fit_predict(self, X):
         self.fit(X)
         return self.predict(X)
@@ -106,13 +110,24 @@ class SVDD:
         elif X.ndim == 2:
             n_instances, n_length = X.shape
         X = self._check_X(X)
-        K_xx_s = self._check_X(K_xx_s)
-        if K_xx_s.ndim != 1:
-            raise ValueError('K_xx_s ndim unequal 1')
+        if K_xx_s is None:
+            if self.kernel is 'precomputed':
+                return ValueError()
+        else:
+            if K_xx_s.ndim != 1:
+                raise ValueError('K_xx_s ndim unequal 1')
+            K_xx_s = self._check_X(K_xx_s)
         if self.kernel == 'tga':
             gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method)
+            X = gram_matrix
             if self.normalization_method == 'exp':
                 gram_diagonal_test = np.ones(n_instances)
+                K_xx_s = gram_diagonal_test
+            else:
+                gram_diagonal_test = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
+                gram_diagonal_test = np.diagonal(gram_diagonal_test)
+                K_xx_s = gram_diagonal_test
+
         elif self.kernel == 'precomputed':
             if K_xx_s is None:
                 raise ValueError()
@@ -140,3 +155,17 @@ class SVDD:
         if isinstance(X, pd.DataFrame) or (isinstance(X, np.ndarray) and not X.flags['C_CONTIGUOUS']):
             X = np.ascontiguousarray(X)
         return X
+
+    def _info(self, line):
+        if self.verbose:
+            print(line)
+
+    def _check_kernel(self,X,  K_xx_s):
+        if self.kernel == 'tga':
+            gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method)
+            if self.normalization_method == 'exp':
+                gram_diagonal_test = np.ones(n_instances)
+
+        elif self.kernel == 'precomputed':
+            if K_xx_s is None:
+                raise ValueError()
