@@ -72,14 +72,14 @@ void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, doub
 }
 
 void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train,
-                       int nLength_test, int nDim, double *res, double sigma, int triangular) {
+                       int nLength_test, int nDim, double *res ,double sigma, int triangular, int64_t *sv_indices, int64_t sv_size) {
     g_nInstances = nInstances_train;
     g_nLength_test = nLength_test;
     g_nLength_train = nLength_train;
     g_nDim = nDim;
 
     int i = 0;
-    int j = 0;
+    int l = 0;
     double *cache_train = (double *) malloc(nInstances_train * sizeof(double));
     double *cache_test = (double *) malloc(nInstances_test * sizeof(double));
 
@@ -88,8 +88,9 @@ void testGramMatrixExp(double *train, double *test, int nInstances_train, int nI
         exit(1);
     }
     // compute GAK with itself
-#pragma omp parallel for private(i)
-    for (i = 0; i < nInstances_train; i++) {
+#pragma omp parallel for private(l)
+    for (l = 0; l < sv_size; l++) {
+        int i = sv_indices[l];
         int seq_i = seqOffset_train(i);
         cache_train[i] = logGAK((double *) &train[seq_i], (double *) &train[seq_i], nLength_train, nLength_train, nDim,
                                 sigma, triangular);
@@ -101,10 +102,11 @@ void testGramMatrixExp(double *train, double *test, int nInstances_train, int nI
                                sigma, triangular);
     }
 
-#pragma omp parallel for collapse(2) private(i, j)
+#pragma omp parallel for private(i,l)
     for (i = 0; i < nInstances_test; i++) {
-        for (j = 0; j < nInstances_train; j++) {
-            int seq_test = seqOffset_test(i);
+        int seq_test = seqOffset_test(i);
+        for (l = 0; l < sv_size; l++) {
+            int j = sv_indices[l];
             int seq_train = seqOffset_train(j);
 
             // compute the global alignment kernel value
