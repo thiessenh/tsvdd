@@ -72,6 +72,72 @@ class DirtySVDD:
             degree=self.degree, coef0=self.coef0, gamma=self.gamma,
             cache_size=self.cache_size)
 
+from tsvdd.ga import tga_dissimilarity, train_kernel_matrix, test_kernel_matrix
+n_train= 10
+length_train= 5
+n_test= 10
+length_test= 5
+dim =1
+sv_indices ='all'
+rs = np.random.RandomState(1234)
+if sv_indices is 'all':
+    indices = np.arange(n_train, dtype=np.int64)
+elif sv_indices is 'random':
+    indices = rs.randint(low=0, high=n_train, size=int(n_train/2))
+
+c_train_matrix = rs.rand(n_train, length_train, dim).astype(dtype=np.float64, order='c')
+c_test_matrix = rs.rand(n_test, length_test, dim).astype(dtype=np.float64, order='c')
+res = np.zeros(shape=(n_test, n_train), dtype=np.float64)
+sigma = 2
+triangular = 0
+for i in range(n_test):
+    seq_1 = c_test_matrix[i]
+    for j in range(n_train):
+        if j in indices:
+            seq_2 = c_train_matrix[j]
+            res[i, j] = tga_dissimilarity(seq_1, seq_2, sigma, triangular)
+res = np.exp(-res)
+indices = np.sort(indices).astype(dtype=np.int64, order='c')
+
+res_cython = test_kernel_matrix(c_train_matrix, c_test_matrix, sigma, triangular, 'exp', indices)
+np.testing.assert_array_equal(res, res_cython)
+
+
+
+
+1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 n_samples = 1000
 outlier_ratio = 0.5
 X, y = make_circles(n_samples=n_samples, factor=.3, noise=0.05)
