@@ -3,17 +3,18 @@ import numpy as np
 import pandas as pd
 from .ga import test_kernel_matrix, train_kernel_matrix
 from .utils import svmlib_kernel_format, sampled_gak_sigma
-
+import time
 
 class SVDD:
     _kernels = ["precomputed", "tga"]
 
-    def __init__(self, kernel='tga', nu=0.05, C=0.02, degree=3, gamma=1,
-                 coef0=0.0, tol=1e-5, sigma='auto', triangular='auto',
+    def __init__(self, kernel='tga', nu=None, C=0.02, degree=3, gamma=1,
+                 coef0=0.0, tol=1e-4, sigma='auto', triangular='auto',
                  normalization_method='exp', shrinking=False, cache_size=200,
                  verbose=True):
         self.kernel = kernel
         self.C = C
+        # from 1 ... model->l
         self.support_ = None
         self.support_vectors_ = None
         self._n_support = None
@@ -42,13 +43,18 @@ class SVDD:
         self.n_SV = None
         self.r_square = None
         self.rho = None
+        self.tga_duration = None
+        self.svdd_duration = None
 
         if kernel not in self._kernels:
             raise ValueError()
         if self.tol < 10e-7:
             raise Warning(f'Small tolerance < {tol} might result in long training times.')
-        if self.nu <= 0 or self.nu > 1:
-            raise ValueError(f'Invalid parameter `nu={self.nu}`.')
+        if self.nu:
+            if self.nu <= 0 or self.nu > 1:
+                raise ValueError(f'Invalid parameter `nu={self.nu}`.')
+        else:
+            self.nu = 0.5
 
     def __str__(self):
         return f'SVDD(kernel={self.kernel}, nu={self.nu}, C={self.C}, sigma={self.sigma},' \
@@ -61,10 +67,12 @@ class SVDD:
         elif X.ndim == 2:
             n_instances, n_length = X.shape
         else:
-            raise ValueError()
+            raise ValueError("X.ndim")
         if self.C < (1 / n_instances):
             self.C = (1 / n_instances)
             raise Warning(f'C too small, set C to {self.C}')
+        if self.nu:
+            self.C = 1 / (self.nu * n_instances)
         self.X_fit = self._check_X(X)
         if self.kernel == 'tga':
             if self.sigma == 'auto':
@@ -77,7 +85,9 @@ class SVDD:
         y = np.ones(X.shape[0], dtype=np.float64)
 
         if self.kernel == 'tga':
+            start = time.time()
             X = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
+            self.tga_duration = time.time() - start
         elif self.kernel == 'precomputed':
             if n_instances != n_length:
                 raise ValueError("n_instances != n_length")
@@ -118,7 +128,10 @@ class SVDD:
                 raise ValueError('K_xx_s ndim unequal 1')
             K_xx_s = self._check_X(K_xx_s)
         if self.kernel == 'tga':
-            gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method)
+            sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='c')
+            sv_indices = sv_indices - 1
+            start = time.time()
+            gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method, sv_indices)
             X = gram_matrix
             if self.normalization_method == 'exp':
                 gram_diagonal_test = np.ones(n_instances)
@@ -127,6 +140,7 @@ class SVDD:
                 gram_diagonal_test = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
                 gram_diagonal_test = np.diagonal(gram_diagonal_test)
                 K_xx_s = gram_diagonal_test
+            self.svdd_duration = time.time() - start
 
         elif self.kernel == 'precomputed':
             if K_xx_s is None:
@@ -164,7 +178,7 @@ class SVDD:
         if self.kernel == 'tga':
             gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method)
             if self.normalization_method == 'exp':
-                gram_diagonal_test = np.ones(n_instances)
+                gram_diagonal_test = np.ones(self.X_fit.shape[0])
 
         elif self.kernel == 'precomputed':
             if K_xx_s is None:

@@ -17,7 +17,7 @@ cdef extern from "logGAK.h" nogil:
 
 cdef extern from "matrixLogGAK.h" nogil:
     void trainGramMatrixExp(double *seq, int nInstances, int nLength, int nDim, double *res, double sigma, int triangular)
-    void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test, int nDim, double *res, double sigma, int triangular)
+    void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test, int nDim, double *res, double sigma, int triangular, signed long *sv_indices, signed long sv_size)
 
 def tga_dissimilarity(np.ndarray[np.double_t,ndim=2] seq1, np.ndarray[np.double_t,ndim=2] seq2, double sigma, int triangular):
     """ Compute the Triangular Global Alignment (TGA) dissimilarity score
@@ -163,7 +163,7 @@ def train_kernel_matrix(np.ndarray[np.double_t,ndim=3] seq, double sigma, int tr
 
     return np.exp(-res)
 
-def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.double_t, ndim=3] test, double sigma, int triangular, str normalization_method):
+def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.double_t, ndim=3] test, double sigma, int triangular, str normalization_method, np.ndarray[np.int64_t, ndim=1] sv_indices):
     """ Compute the Triangular Global Alignment (TGA) similarity score
 
     What is computed is the global alignment kernel evaluation between the two time series,
@@ -187,6 +187,8 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
           * higher = more restricted thus faster
           * kernel value is also 0 for series with difference in duration > triangular-1
 
+      sv_indices: Indices starting at 0.
+
     RETURN:
       mlnk: double,
         minus the normalized log-kernel
@@ -197,6 +199,7 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
     cdef int nInstances_train = train.shape[0]
     cdef int nLength_train = train.shape[1]
     cdef int nDim = train.shape[2]
+    cdef signed long sv_size = sv_indices.shape[0]
 
     cdef int nInstances_test= test.shape[0]
     cdef int nLength_test = test.shape[1]
@@ -209,13 +212,14 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
     assert train.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
     assert test.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
     assert normalization_method in ['exp'], f'normalization_method=`{normalization_method}` is not a valid argument.'
+    assert sv_size <= nInstances_train, "There can't be more support vectors than train instances."
 
     # define matrix for kernel values
     cdef np.ndarray[np.double_t, ndim=2] res = np.zeros([nInstances_test, nInstances_train], order='C')
 
     if normalization_method == 'exp':
         testGramMatrixExp(<double*> train.data, <double*> test.data, <int> nInstances_train, <int> nInstances_test, <int> nLength_train, <int> nLength_test, <int> nDim, <double*> res.data, <double> sigma,
-                          <int> triangular)
+                          <int> triangular, <signed long*> sv_indices.data, <signed long> sv_size)
     else:
         raise ValueError(f'normalization_method=`{normalization_method}` is not a valid argument.')
     return np.exp(-res)
