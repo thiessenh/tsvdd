@@ -45,16 +45,12 @@ class SVDD:
         self.rho = None
         self.tga_duration = None
         self.svdd_duration = None
+        self.train_gram = None
 
         if kernel not in self._kernels:
             raise ValueError()
         if self.tol < 10e-7:
             raise Warning(f'Small tolerance < {tol} might result in long training times.')
-        if self.nu:
-            if self.nu <= 0 or self.nu > 1:
-                raise ValueError(f'Invalid parameter `nu={self.nu}`.')
-        else:
-            self.nu = 0.5
 
     def __str__(self):
         return f'SVDD(kernel={self.kernel}, nu={self.nu}, C={self.C}, sigma={self.sigma},' \
@@ -72,7 +68,12 @@ class SVDD:
             self.C = (1 / n_instances)
             raise Warning(f'C too small, set C to {self.C}')
         if self.nu:
-            self.C = 1 / (self.nu * n_instances)
+            if self.nu <= 0 or self.nu > 1:
+                    raise ValueError(f'Invalid parameter `nu={self.nu}`.')
+            else:
+                self.C = 1 / (self.nu * n_instances)
+        else:
+            self.nu = 0.5
         self.X_fit = self._check_X(X)
         if self.kernel == 'tga':
             if self.sigma == 'auto':
@@ -87,6 +88,7 @@ class SVDD:
         if self.kernel == 'tga':
             start = time.time()
             X = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
+            self.train_gram = X
             self.tga_duration = time.time() - start
         elif self.kernel == 'precomputed':
             if n_instances != n_length:
@@ -130,8 +132,10 @@ class SVDD:
         if self.kernel == 'tga':
             sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='c')
             sv_indices = sv_indices - 1
-            start = time.time()
-            gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method, sv_indices)
+            if np.equal(self.X_fit, X):
+                gram_matrix = self.train_gram
+            else:
+                gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method, sv_indices)
             X = gram_matrix
             if self.normalization_method == 'exp':
                 gram_diagonal_test = np.ones(n_instances)
@@ -140,25 +144,27 @@ class SVDD:
                 gram_diagonal_test = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
                 gram_diagonal_test = np.diagonal(gram_diagonal_test)
                 K_xx_s = gram_diagonal_test
-            self.svdd_duration = time.time() - start
 
         elif self.kernel == 'precomputed':
             if K_xx_s is None:
                 raise ValueError()
+        start = time.time()
         if dec_vals:
-            return libsvdd.decision_function(
+            score = libsvdd.decision_function(
                 X, K_xx_s, self.support_, self.support_vectors_, self._n_support,
                 self.dual_coef_, self.intercept_,
                 self._probA, self._probB, svm_type=5, kernel='precomputed',
                 degree=self.degree, coef0=self.coef0, gamma=self.gamma,
                 cache_size=self.cache_size)
         else:
-            return libsvdd.predict(
+            score = libsvdd.predict(
                 X, K_xx_s, self.support_, self.support_vectors_, self._n_support,
                 self.dual_coef_, self.intercept_,
                 self._probA, self._probB, svm_type=5, kernel='precomputed',
                 degree=self.degree, coef0=self.coef0, gamma=self.gamma,
                 cache_size=self.cache_size)
+        self.svdd_duration = time.time() - start
+        return score
 
     def decision_function(self, X, K_xx_s=None):
         p_val = self.predict(X, K_xx_s, dec_vals=True)
