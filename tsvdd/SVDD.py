@@ -132,7 +132,7 @@ class SVDD:
         if self.kernel == 'tga':
             sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='c')
             sv_indices = sv_indices - 1
-            if np.equal(self.X_fit, X):
+            if np.array_equal(self.X_fit, X):
                 gram_matrix = self.train_gram
             else:
                 gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method, sv_indices)
