@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def svmlib_kernel_format(kernel_matrix):
     """
     Transforms kernel_matrix to matrix in libsvm format.
