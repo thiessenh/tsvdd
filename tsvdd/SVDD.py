@@ -59,6 +59,10 @@ class SVDD:
                f'triangular={self.triangular}, normalization_method={self.normalization_method})'
 
     def fit(self, X, y=None, W=None):
+        """
+        X is either data or kernel matrix. y is not yet implemented.
+        W are instance weights, primarily used for active learning.
+        """
 
         # distinguish between precomputed and built-in kernels
         if self.kernel == 'precomputed':
@@ -132,10 +136,17 @@ class SVDD:
         self.is_fit = True
 
     def fit_predict(self, X):
+        """
+        Fit then predict.
+        """
         self.fit(X)
         return self.predict(X)
 
     def predict(self, X, K_xx_s=None, dec_vals=False):
+        """
+        Predict from data or from kernel matrix. K_xx_s is the `diagonal` and must be provided when kernel=precomputed.
+        When dec_vals=True, `distance` to radius is returned instead of labels.
+        """
         # fit before precit
         if not self.is_fit:
             raise AttributeError('SVDD not fitted.')
@@ -235,6 +246,10 @@ class SVDD:
             print(line)
 
     def _check_arguments(self):
+        """
+        Check if C is valid. If \nu is set, calculate C from \nu.
+        If sigma=`auto` or traingular=`auto`, calculate accordingly.
+        """
         n_instances = self.fit_shape[0]
         n_length = self.fit_shape[1]
         if self.C < (1 / n_instances):
