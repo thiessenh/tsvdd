@@ -11,14 +11,14 @@ class alSVDD(SVDD):
     def __init__(self,  kernel='tga', nu=0.05, C=0.02, degree=3, gamma=1,
                  coef0=0.0, tol=1e-5, sigma='auto', triangular='auto',
                  normalization_method='exp', shrinking=False, cache_size=200,
-                 verbose=True,
-                 query_strategy='confidence_outside', update_in=10, update_out=0.01):
+                 verbose=True, query_strategy='confidence_outside',
+                 update_in=10, update_out=0.01):
         super().__init__(kernel=kernel, nu=nu, C=C, degree=degree, gamma=gamma,
                  coef0=coef0, tol=tol, sigma=sigma, triangular=triangular,
                  normalization_method=normalization_method, shrinking=shrinking, cache_size=cache_size,
                  verbose=verbose)
         if query_strategy not in self._query_strategies:
-            raise ValueError()
+            raise ValueError('Not a valid query strategy.')
         self._query_strategy = query_strategy
         self.update_in = update_in
         self.update_out = update_out
