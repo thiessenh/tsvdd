@@ -1,3 +1,6 @@
 pandas
 numpy
 scikit-learn
+setuptools
+Cython
+dtaidistance
