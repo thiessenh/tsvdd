@@ -6,7 +6,7 @@ from .utils import svmlib_kernel_format, sampled_gak_sigma
 import time
 
 class SVDD:
-    _kernels = ["precomputed", "tga"]
+    _kernels = ["precomputed", "tga", "gds_dtw"]
 
     def __init__(self, kernel='tga', nu=None, C=0.02, degree=3, gamma=1,
                  coef0=0.0, tol=1e-4, sigma='auto', triangular='auto',
@@ -83,13 +83,25 @@ class SVDD:
                 self.triangular = .5 * n_length
         if y is not None:
             raise NotImplementedError('Y not yet implemented')
-        y = np.ones(X.shape[0], dtype=np.float64)
+        y = np.ones(n_instances, dtype=np.float64)
 
         if self.kernel == 'tga':
             start = time.time()
             X = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
             self.train_gram = X
             self.tga_duration = time.time() - start
+        elif self.kernel == 'gds_dtw':
+            # GDS_{DTW}(x_i, x_j) = \exp (- \frac{DTW(x_i, x_j)^ 2}{\sigma^2})
+            from dtaidistance import dtw
+            X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
+            for i in range(n_instances):
+                seq_1 = X[i]
+                for j in range(n_instances):
+                    seq_2 = X[j]
+                    # DTW(x_i, x_j)
+                    X_[i, j] = dtw.distance_fast(seq_1, seq_2)
+            # \exp (- \frac{X_^ 2}{\sigma^2})
+            X = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2))).reshape((n_instances, n_instances))
         elif self.kernel == 'precomputed':
             if n_instances != n_length:
                 raise ValueError("n_instances != n_length")
@@ -130,7 +142,7 @@ class SVDD:
                 raise ValueError('K_xx_s ndim unequal 1')
             K_xx_s = self._check_X(K_xx_s)
         if self.kernel == 'tga':
-            sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='c')
+            sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='C')
             sv_indices = sv_indices - 1
             if np.array_equal(self.X_fit, X):
                 gram_matrix = self.train_gram
@@ -144,7 +156,27 @@ class SVDD:
                 gram_diagonal_test = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
                 gram_diagonal_test = np.diagonal(gram_diagonal_test)
                 K_xx_s = gram_diagonal_test
-
+        elif self.kernel == 'gds_dtw':
+            # GDS_{DTW}(x_i, x_j) = \exp (- \frac{DTW(x_i, x_j)^ 2}{\sigma^2})
+            sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='C')
+            sv_indices = sv_indices - 1
+            from dtaidistance import dtw
+            X_ = np.ones((n_instances, self.fit_shape[0]), dtype=np.float64, order='C')
+            for i in range(n_instances):
+                seq_1 = X[i]
+                for j in sv_indices:
+                    seq_2 = self.X_fit[j]
+                    # DTW(x_i, x_j)
+                    X_[i, j] = dtw.distance_fast(seq_1, seq_2)
+            # \exp (- \frac{X_^ 2}{\sigma^2})
+            X_ = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2)))
+            # calculate gram diagonal
+            K_xx_s_ = np.ones(n_instances, dtype=np.float64, order='C')
+            for i in range(n_instances):
+                seq_1 = X[i]
+                K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
+            K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self.sigma, 2)))
+            X = X_.reshape((n_instances, self.fit_shape[0]))
         elif self.kernel == 'precomputed':
             if K_xx_s is None:
                 raise ValueError()
