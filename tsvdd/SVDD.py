@@ -116,7 +116,7 @@ class SVDD:
         # check W
         if W is None:
             W = np.ones(n_instances, dtype=np.float64)
-        elif W.ndim !=1:
+        elif W.ndim != 1:
             raise ValueError("W.ndim !=1")
 
         # start training
