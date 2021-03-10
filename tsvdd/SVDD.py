@@ -8,12 +8,30 @@ from dtaidistance import dtw
 import warnings
 
 class SVDD:
+    """
+    Support Vector Data Description
+    """
     _kernels = ["precomputed", "tga", "gds_dtw", "rbf"]
 
     def __init__(self, kernel='tga', nu=None, C=0.02, degree=3, gamma=1,
                  coef0=0.0, tol=1e-4, sigma='auto', triangular='auto',
                  normalization_method='exp', shrinking=False, cache_size=200,
                  verbose=True):
+        """
+        @param kernel: Choose among kernels ["precomputed", "tga", "gds_dtw", "rbf"]
+        @param nu: Expected outlier ratio
+        @param C: If nu not provided, C will be used. C can be calculated as 1/(outlier_ratio * n_instances)
+        @param degree: To be removed
+        @param gamma: To be removed
+        @param coef0: To be removed
+        @param tol: Stopping criteria for SMO optimization.
+        @param sigma: Sigma for Gaussian-like kernels.
+        @param triangular: For tga kernel
+        @param normalization_method: Method to normalize tga kernel.
+        @param shrinking: Whether to remove bounded \alphas from working set during optimization
+        @param cache_size: Cache size
+        @param verbose: Set verbosity accordingly.
+        """
         self.kernel = kernel
         self.C = C
         # from 1 ... model->l
@@ -28,6 +46,7 @@ class SVDD:
         self.shrinking = shrinking
         self.fit_shape = None
         self.gamma = gamma
+        # move to libsvdd.pyx
         self.coef0 = coef0
         self.tol = tol
         self.cache_size = cache_size
@@ -36,10 +55,14 @@ class SVDD:
         self.sigma = sigma
         self.triangular = triangular
         self.normalization_method = normalization_method
+        # move to libsvdd.pyx; but keep here for C calculation
         self.nu = nu
         self.verbose = verbose
+        # move to libsvdd.pyx
         self.class_weight_ = np.empty(0, dtype=np.float64)
+        # move to libsvdd.pyx
         self.probability = False
+        # move to libsvdd.pyx
         self.epsilon = 0
         self.is_fit = False
         self.n_SV = None
@@ -62,13 +85,21 @@ class SVDD:
 
     def fit(self, X, y=None, W=None):
         """
-        X is either data or kernel matrix. y is not yet implemented.
-        W are instance weights, primarily used for active learning.
+        Fit SVDD to X, performs a couple of checks on input data.
+
+        @param X: X is either ndarray or kernel matrix
+        @param y: y is array, but not yet implemented.
+        @param W: W are instance weights, primarily used for active learning.
         """
 
         # distinguish between precomputed and built-in kernels
         if self.kernel == 'precomputed':
             self.train_gram = self._check_kernel_matrix(X, is_fit=True)
+            n_instances = self.train_gram.shape[0]
+        elif self.is_fit and np.array_equal(self.X_fit, X):
+            # SVDD already fitted; if X equals X_fit, gram_train can be reused
+            n_instances = X.shape[0]
+            pass
         else:
             self.fit_shape = X.shape
             # check if input data are valid for kernel computation
@@ -147,7 +178,12 @@ class SVDD:
     def predict(self, X, K_xx_s=None, dec_vals=False):
         """
         Predict from data or from kernel matrix. K_xx_s is the `diagonal` and must be provided when kernel=precomputed.
-        When dec_vals=True, `distance` to radius is returned instead of labels.
+        When dec_vals=True, the `distance` to the decision boundary is returned instead of labels.
+
+        @param X: ndarray
+        @param K_xx_s: array of [K(x_1, x_1), ..., K(x_n, x_n)
+        @param dec_vals: True if distance values should be returned.
+
         """
         # fit before precit
         if not self.is_fit:
@@ -240,6 +276,9 @@ class SVDD:
         return score
 
     def decision_function(self, X, K_xx_s=None):
+        """
+        Calls predict() with dec_values=True. See predict() doc string.
+        """
         p_val = self.predict(X, K_xx_s, dec_vals=True)
         return p_val
 
