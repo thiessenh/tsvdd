@@ -5,7 +5,7 @@ from .ga import test_kernel_matrix, train_kernel_matrix
 from .utils import svmlib_kernel_format, sampled_gak_sigma
 import time
 from dtaidistance import dtw
-
+import warnings
 
 class SVDD:
     _kernels = ["precomputed", "tga", "gds_dtw", "rbf"]
@@ -51,8 +51,10 @@ class SVDD:
 
         if kernel not in self._kernels:
             raise ValueError(f'Unknown kernel:{kernel}')
+        if self.tol > 10e-3:
+            warnings.warn(f'Large tolerance = {tol} might lead to poor results.', Warning)
         if self.tol < 10e-7:
-            raise Warning(f'Small tolerance < {tol} might result in long training times.')
+            warnings.warn(f'Small tolerance = {tol} might result in long training times.', Warning)
 
     def __str__(self):
         return f'SVDD(kernel={self.kernel}, nu={self.nu}, C={self.C}, sigma={self.sigma},' \
@@ -254,7 +256,7 @@ class SVDD:
         n_length = self.fit_shape[1]
         if self.C < (1 / n_instances):
             self.C = (1 / n_instances)
-            raise Warning(f'C too small, set C to {self.C}')
+            warnings.warn(f'C too small, set C to {self.C}', Warning)
         if self.nu:
             if self.nu <= 0 or self.nu > 1:
                 raise ValueError(f'Invalid parameter `nu={self.nu}`.')
