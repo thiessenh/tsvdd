@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+tsvdd/libsvdd.c
+
+
 # C extensions
 *.so
 src/ga/cmake-build-debug/
