@@ -380,7 +380,7 @@ public:
 
 	void Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
 		   double *alpha_, const double* C_, double eps,
-		   SolutionInfo* si, int shrinking);
+		   SolutionInfo* si, int shrinking, int max_iter);
 protected:
 	int active_size;
 	schar *y;
@@ -480,7 +480,7 @@ void Solver::reconstruct_gradient()
 
 void Solver::Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
 		   double *alpha_, const double* C_, double eps,
-		   SolutionInfo* si, int shrinking)
+		   SolutionInfo* si, int shrinking, int max_iter)
 {
 	this->l = l;
 	this->Q = &Q;
@@ -534,10 +534,10 @@ void Solver::Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
 	// optimization step
 
 	int iter = 0;
-	int max_iter = max(10000000, l>INT_MAX/100 ? INT_MAX : 100*l);
+	int _max_iter = max(max_iter, l>INT_MAX/100 ? INT_MAX : 100*l);
 	int counter = min(l,1000)+1;
 	
-	while(iter < max_iter)
+	while(iter < _max_iter)
 	{
 		// show progress and do shrinking
 
@@ -704,7 +704,7 @@ void Solver::Solve(int l, const QMatrix& Q, const double *p_, const schar *y_,
 		}
 	}
 
-	if(iter >= max_iter)
+	if(iter >= _max_iter)
 	{
 		if(active_size < l)
 		{
@@ -989,10 +989,10 @@ public:
 	Solver_NU() {}
 	void Solve(int l, const QMatrix& Q, const double *p, const schar *y,
 		   double *alpha, double* C_, double eps,
-		   SolutionInfo* si, int shrinking)
+		   SolutionInfo* si, int shrinking, int max_iter)
 	{
 		this->si = si;
-		Solver::Solve(l,Q,p,y,alpha,C_,eps,si,shrinking);
+		Solver::Solve(l,Q,p,y,alpha,C_,eps,si,shrinking, max_iter);
 	}
 private:
 	SolutionInfo *si;
@@ -1492,7 +1492,7 @@ static void solve_c_svc(
 
 	Solver s;
 	s.Solve(l, SVC_Q(*prob,*param,y), minus_ones, y,
-		alpha, C, param->eps, si, param->shrinking);
+		alpha, C, param->eps, si, param->shrinking, param->max_iter);
 
 	/*
 	double sum_alpha=0;
@@ -1555,7 +1555,7 @@ static void solve_nu_svc(
 
 	Solver_NU s;
 	s.Solve(l, SVC_Q(*prob,*param,y), zeros, y,
-		alpha, C, param->eps, si,  param->shrinking);
+		alpha, C, param->eps, si,  param->shrinking, param->max_iter);
 	double r = si->r;
 
 	info("C = %f\n",1/r);
@@ -1610,7 +1610,7 @@ static void solve_one_class(
 
 	Solver s;
 	s.Solve(l, ONE_CLASS_Q(*prob,*param), zeros, ones,
-		alpha, C, param->eps, si, param->shrinking);
+		alpha, C, param->eps, si, param->shrinking, param->max_iter);
 
 	delete[] C;
 	delete[] zeros;
@@ -1643,7 +1643,7 @@ static void solve_epsilon_svr(
 
 	Solver s;
 	s.Solve(2*l, SVR_Q(*prob,*param), linear_term, y,
-		alpha2, C, param->eps, si, param->shrinking);
+		alpha2, C, param->eps, si, param->shrinking, param->max_iter);
 	double sum_alpha = 0;
 	for(i=0;i<l;i++)
 	{
@@ -1690,7 +1690,7 @@ static void solve_nu_svr(
 
 	Solver_NU s;
 	s.Solve(2*l, SVR_Q(*prob,*param), linear_term, y,
-		alpha2, C, param->eps, si, param->shrinking);
+		alpha2, C, param->eps, si, param->shrinking, param->max_iter);
 
 	info("epsilon = %f\n",-si->r);
 
@@ -1737,7 +1737,7 @@ static void solve_svdd(
 
 		Solver s;
 		s.Solve(l, Q, linear_term, ones, alpha, Cs,
-			param->eps, si, param->shrinking);
+			param->eps, si, param->shrinking, param->max_iter);
 
 		// \bar{R} = 2(obj-rho) + sum K_{ii}*alpha_i
 		// because rho = (a^Ta - \bar{R})/2
@@ -1813,7 +1813,7 @@ static void solve_r2q(
 
 	Solver s;
 	s.Solve(l, R2_Qq(*prob,*param), linear_term, ones,
-			alpha, Cs, param->eps, si, param->shrinking);
+			alpha, Cs, param->eps, si, param->shrinking, param->max_iter);
 
 	info("R^2 = %f\n", -2 *si->obj);
 

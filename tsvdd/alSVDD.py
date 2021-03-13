@@ -14,7 +14,7 @@ class alSVDD(SVDD):
 
     def __init__(self, kernel='tga', nu=None, C=0.02, degree=3, gamma=1,
                  coef0=0.0, tol=1e-5, sigma='auto', triangular='auto',
-                 normalization_method='exp', shrinking=False, cache_size=200,
+                 normalization_method='exp', shrinking=False, cache_size=200, max_iter=100000,
                  verbose=True, query_strategy='uncertainty_outside',
                  update_in=10, update_out=0.01, metric='MCC', n_iter_max=50, start_up_phase=5):
         """
@@ -30,6 +30,7 @@ class alSVDD(SVDD):
         @param normalization_method: Method to normalize tga kernel.
         @param shrinking: Whether to remove bounded \alphas from working set during optimization
         @param cache_size: Cache size
+        @param max_iter: Maximum iterations for SMO optimization
         @param verbose: Whether active learning process should be communicated
         @param query_strategy: Query strategies are defined in file `_query_strategies`
         @param update_in: Weight update for annotated inliers
@@ -41,7 +42,7 @@ class alSVDD(SVDD):
         super().__init__(kernel=kernel, nu=nu, C=C, degree=degree, gamma=gamma,
                          coef0=coef0, tol=tol, sigma=sigma, triangular=triangular,
                          normalization_method=normalization_method, shrinking=shrinking, cache_size=cache_size,
-                         verbose=verbose)
+                         max_iter=max_iter, verbose=verbose)
         if query_strategy not in self._query_strategies:
             raise ValueError('Not a valid query strategy.')
         if metric not in self._metrics:
@@ -58,6 +59,7 @@ class alSVDD(SVDD):
         self.quality_metrics = list()
         self.AEQs = list()
         self.LSs = list()
+        self.al_iterations = 0
         # sets
         self.U = list()
         self.L_in = list()
@@ -122,7 +124,7 @@ class alSVDD(SVDD):
             self.LSs.append(learning_stability)
             self._info(f'BA: {balanced_accuracy_score(y, y_pred)}')
             # stop active learning cycle when learning stability reaches zero; but allow start-up phase
-            if learning_stability == 0 and i not in range(self.start_up_phase):
+            if learning_stability <= 0 and i not in range(self.start_up_phase):
                 break
             # get most informative unknown sample outside decision boundary
             idx = QS_function(self.U, self.L_in, self.L_out, y_vals)
@@ -138,6 +140,7 @@ class alSVDD(SVDD):
             else:
                 self.L_out.append(idx)
             self._info('')
+        self.al_iterations = i + 1
 
     def _load_QS(self):
         """
@@ -196,15 +199,18 @@ class alSVDD(SVDD):
         @return:
         """
 
-        def QR(i, j):
-            if j <= i:
-                return self.quality_metrics[i] - self.quality_metrics[j]
+        def QR(start, end):
+            """
+            Quality Range from start to end
+            """
+            if start <= end:
+                return self.quality_metrics[end] - self.quality_metrics[start]
             else:
                 raise ValueError('`i` is smaller than `j`, I cant go back in time.')
 
         k_ = min(iteration, k)
         # check if quality improved
-        if QR(iteration, 0) > 0:
-            return (QR(iteration, iteration - k_) / k_) / (QR(iteration, 0) / iteration)
+        if QR(0,iteration) > 0:
+            return (QR(iteration -k_, iteration) / k_) / (QR(0, iteration) / iteration)
         else:
             return 0

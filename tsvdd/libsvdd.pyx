@@ -43,7 +43,7 @@ cdef extern from "libsvm_helper.c":
     # svm_node ** dense_to_sparse(char *, np.npy_intp *)
     void set_parameter(svm_parameter *, int, int, int, double, double,
                        double, double, double, double,
-                       double, int, int, int, char *, char *)
+                       double, int, int, int, char *, char *, int)
     void set_problem(svm_problem *, char *, char *, char *, np.npy_intp *, int)
 
     svm_model *set_model(svm_parameter *, int, char *, np.npy_intp *,
@@ -91,7 +91,7 @@ def fit(
     np.ndarray[np.float64_t, ndim=1, mode='c']
         sample_weight=np.empty(0),
     int shrinking=1, int probability=0,
-    double cache_size=100.):
+    double cache_size=100., int max_iter=1000000):
     """
     Train the model using libsvm (low-level method)
 
@@ -202,7 +202,7 @@ def fit(
     set_parameter(
         &param, svm_type, kernel_index, degree, gamma, coef0, nu, cache_size,
         C, tol, epsilon, shrinking, probability, <int> class_weight.shape[0],
-        class_weight_label.data, class_weight.data)
+        class_weight_label.data, class_weight.data, max_iter)
 
     error_msg = svm_check_parameter(&problem, &param)
     if error_msg:
@@ -285,12 +285,13 @@ cdef void set_predict_params(
     cdef double nu = .5
     cdef int shrinking = 0
     cdef double tol = .1
+    cdef int max_iter = 1000000
 
     kernel_index = LIBSVM_KERNEL_TYPES.index(kernel)
 
     set_parameter(param, svm_type, kernel_index, degree, gamma, coef0, nu,
                          cache_size, C, tol, epsilon, shrinking, probability,
-                         nr_weight, weight_label, weight)
+                         nr_weight, weight_label, weight, max_iter)
 
 def predict(np.ndarray[np.float64_t, ndim=2, mode='c'] X,
             np.ndarray[np.float64_t, ndim=1, mode='c'] K_xx_s,

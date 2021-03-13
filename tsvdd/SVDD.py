@@ -15,7 +15,7 @@ class SVDD:
 
     def __init__(self, kernel='tga', nu=None, C=0.02, degree=3, gamma=1,
                  coef0=0.0, tol=1e-4, sigma='auto', triangular='auto',
-                 normalization_method='exp', shrinking=False, cache_size=200,
+                 normalization_method='exp', shrinking=False, cache_size=200, max_iter=1000000,
                  verbose=True):
         """
         @param kernel: Choose among kernels ["precomputed", "tga", "gds_dtw", "rbf"]
@@ -45,6 +45,7 @@ class SVDD:
         self.degree = degree
         self.shrinking = shrinking
         self.fit_shape = None
+        self.max_iter = max_iter
         self.gamma = gamma
         # move to libsvdd.pyx
         self.coef0 = coef0
@@ -163,7 +164,7 @@ class SVDD:
             nu=self.nu, probability=self.probability, degree=self.degree,
             shrinking=self.shrinking, tol=self.tol,
             cache_size=self.cache_size, coef0=self.coef0,
-            gamma=self.gamma, epsilon=self.epsilon)
+            gamma=self.gamma, epsilon=self.epsilon, max_iter=self.max_iter)
 
         self.svdd_duration = time.time() - start
         self.is_fit = True
