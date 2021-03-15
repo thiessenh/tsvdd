@@ -96,16 +96,14 @@ class alSVDD(SVDD):
         # ugly, but needed for W
         if self.nu:
             self.C = 1.0 / (self.nu * X.shape[0])
-        for i in range(self.n_iter_max):
-            self._info(f'Iteration: {i}')
 
-            W[self.L_in] = self.update_in
-            W[self.L_out] = self.update_out
-            W[self.U] = 1
+        for i in range(self.n_iter_max):
+
+            self._info(f'Iteration: {i}')
 
             # train / retrain
             self.fit(X, W=W)
-            print(self.rho)
+            self._info(f'Rho = {self.rho}')
             # radius
             radius = np.sqrt(self.r_square)
             self._info(f'R = {radius}')
@@ -124,9 +122,9 @@ class alSVDD(SVDD):
             self.LSs.append(learning_stability)
             self._info(f'BA: {balanced_accuracy_score(y, y_pred)}')
             # stop active learning cycle when learning stability reaches zero; but allow start-up phase
-            if learning_stability <= 0 and i not in range(self.start_up_phase):
+            if learning_stability <= 0 and i not in range(self.start_up_phase + 1): # first iteration does not count.
                 break
-            # get most informative unknown sample outside decision boundary
+            # get most informative unknown sample
             idx = QS_function(self.U, self.L_in, self.L_out, y_vals)
             self._info(f'Most informative sample is {idx} with decision value {y_vals[idx]}')
             # ask oracle for annotation
@@ -134,13 +132,17 @@ class alSVDD(SVDD):
             self._info(f'Annotation is {annotation} for most informative sample {idx}')
             # remove sample from U
             self.U.remove(idx)
-            # adjust sample weight
+            # add sample to L_in or L_out
             if annotation == 1:
                 self.L_in.append(idx)
             else:
                 self.L_out.append(idx)
+
+            W[self.L_in] = self.update_in
+            W[self.L_out] = self.update_out
+            W[self.U] = 1
             self._info('')
-        self.al_iterations = i + 1
+        self.al_iterations = i
 
     def _load_QS(self):
         """
@@ -206,11 +208,11 @@ class alSVDD(SVDD):
             if start <= end:
                 return self.quality_metrics[end] - self.quality_metrics[start]
             else:
-                raise ValueError('`i` is smaller than `j`, I cant go back in time.')
+                raise ValueError('`end` is smaller than `start`, I can\'t go back in time.')
 
         k_ = min(iteration, k)
         # check if quality improved
-        if QR(0,iteration) > 0:
-            return (QR(iteration -k_, iteration) / k_) / (QR(0, iteration) / iteration)
+        if QR(0, iteration) > 0:
+            return (QR(iteration - k_, iteration) / k_) / (QR(0, iteration) / iteration)
         else:
             return 0
