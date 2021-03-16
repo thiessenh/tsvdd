@@ -14,19 +14,11 @@ global_alignment = setuptools.extension.Extension(
     sources=["tsvdd/ga.pyx", "src/ga/logGAK.c", "src/ga/matrixLogGAK.c"],
     include_dirs=[numpy.get_include(), 'src/ga/'],
     extra_compile_args=['-fopenmp', '-O3'],
-    # libraries=['fftw3', 'fftw3f', 'fftw3l', 'fftw3_threads', 'fftw3f_threads', 'fftw3l_threads'],
-    # library_dirs=['/some/path/to/include/'],# not needed for fftw unless it is installed in an unusual place
     extra_link_args=['-fopenmp'])
-
-# libsvdd = distutils.extension.Extension(
-#     'tsvdd.libsvm',
-#     extra_compile_args=['-O3'],
-#     sources=['src/libsvm/svm.cpp'])
 
 libsvdd = setuptools.extension.Extension(
     'tsvdd.libsvdd',
     sources=["tsvdd/libsvdd.pyx", "src/libsvm/svm.cpp"],
-    # sources=["tsvdd/newsvmutil.pyx", "src/libsvm/svm.cpp", "src/libsvm/libsvm_helper.c"],
     include_dirs=[numpy.get_include(), 'src/libsvm/'],
     extra_compile_args=['-fopenmp', '-O3', '-std=c++11'],
     extra_link_args=['-fopenmp',  '-lstdc++'])
@@ -52,5 +44,5 @@ setup(
             'pytest-pep8',
             'pytest-cov']},
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     ext_modules=cythonize([global_alignment, libsvdd]))
