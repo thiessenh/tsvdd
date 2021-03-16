@@ -1,5 +1,20 @@
-# ts(s)vdd package
+# t(s)svdd package
 
-## TSODSVDD and TSALSVDD
-#### Time-Series Outlier Detection Support Vector Data Description and Time-Series Active Learning Support Vector Data Description
+## TSSVDD and AL-TSSVDD
+#### Time-Series Support Vector Data Description and Active Leanring Time-Series Support Vector Data Description
+**t(s)svdd is a Python module for outlier detection in time-series.**
+
+### Installation
+#### Dependencies
+
+tsvdd requires :
+
+- Python >=3.6
+- Numpy >=1.20
+- dtaidistance >=2.2.5
+
+#### Installation
+```shell
+	pip install -U https://github.com/thiessenh/tsvdd
+```
 
