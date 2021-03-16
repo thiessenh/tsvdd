@@ -95,12 +95,17 @@ class SVDD:
 
         # distinguish between precomputed and built-in kernels
         if self.kernel == 'precomputed':
-            self.train_gram = self._check_kernel_matrix(X, is_fit=True)
+            self.train_gram, _ = self._check_kernel_matrix(X, is_fit=True)
             n_instances = self.train_gram.shape[0]
+            self.fit_shape = self.train_gram.shape
+            # check if valid arguments
+            self._check_arguments()
         elif self.is_fit and np.array_equal(self.X_fit, X):
             # SVDD already fitted; if X equals X_fit, gram_train can be reused
             n_instances = X.shape[0]
-            pass
+            self.fit_shape = X.shape
+            # check if valid arguments
+            self._check_arguments()
         else:
             self.fit_shape = X.shape
             # check if input data are valid for kernel computation
@@ -305,7 +310,6 @@ class SVDD:
         else:
             # necessary as Cython needs a valid float
             self.nu = 0.5
-
         if self.kernel == 'tga':
             if self.sigma == 'auto':
                 sigmas = sampled_gak_sigma(self.X_fit, 100)
@@ -321,9 +325,9 @@ class SVDD:
         if is_predict:
             if K_xx is None:
                 raise ValueError('K_xx can not be None')
-            if gram_matrix[0] != K_xx.shape[0]:
+            if gram_matrix.shape[0] != K_xx.shape[0]:
                 raise ValueError("Diagonal of gram matrix has wrong length.")
-            if self.fit_shape[0] != gram_matrix[1]:
+            if self.fit_shape[0] != gram_matrix.shape[1]:
                 raise ValueError("Prediction matrix does not fit train matrix.")
             is_fit = False
         # check shapes during fit
@@ -335,7 +339,7 @@ class SVDD:
             gram_matrix = np.ascontiguousarray(gram_matrix, dtype=np.float64)
         if K_xx is not None and not K_xx.flags['C_CONTIGUOUS']:
             K_xx = np.ascontiguousarray(K_xx, dtype=np.float64)
-        if K_xx.ndim != 1:
+        if K_xx is not None and K_xx.ndim != 1:
             raise ValueError('K_xx_s ndim unequal 1')
         return gram_matrix, K_xx
 
