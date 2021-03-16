@@ -13,8 +13,12 @@ tsvdd requires :
 - Numpy >=1.20
 - dtaidistance >=2.2.5
 
-#### Installation
+#### pip install
 ```shell
 	pip install -U https://github.com/thiessenh/tsvdd
 ```
 
+### Acknowledgements
+- [LIBSVM](https://www.csie.ntu.edu.tw/~cjlin/libsvm/)
+- [Triangular Global Alignment Kernels](https://marcocuturi.net/GA.html)
+- [scikit-learn](https://scikit-learn.org/)
