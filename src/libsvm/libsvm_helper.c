@@ -13,6 +13,12 @@
  * Author: 2010 Fabian Pedregosa <fabian.pedregosa@inria.fr>
  */
 
+ /*
+   Modified to work with SVDD-libsvm.
+
+   Haiko Thiessen 2021
+*/
+
 
 /*
  * Convert matrix to sparse representation suitable for libsvm. x is
@@ -45,17 +51,8 @@ struct svm_node *dense_to_libsvm (double *x, npy_intp *dims, int precomputed)
             node[i].dim = i;
         else
             node[i].dim  = (int) dims[1];
-        //node[i].index = i; /* only used if kernel=precomputed, but not too much overhead */
         tx += len_row;
     }
-    //int j = 0;
-    // works for precomputed
-//    for (i=0; i<dims[0]; ++i) {
-//        printf("\n");
-//        for (j=0; j<dims[1]; ++j) {
-//            printf("%f", node[i].values[j]);
-//    }
-//    }
 
     return node;
 }
@@ -370,27 +367,6 @@ int copy_predict_values(char *predict, struct svm_model *model,
 }
 
 
-
-//int copy_predict_proba(char *predict, struct svm_model *model, npy_intp *predict_dims,
-//                 char *dec_values, BlasFunctions *blas_functions)
-//{
-//    npy_intp i, n, m;
-//    struct svm_node *predict_nodes;
-//    n = predict_dims[0];
-//    m = (npy_intp) model->nr_class;
-//    predict_nodes = dense_to_libsvm((double *) predict, predict_dims);
-//    if (predict_nodes == NULL)
-//        return -1;
-//    for(i=0; i<n; ++i) {
-//        svm_predict_probability(model, &predict_nodes[i],
-//                                ((double *) dec_values) + i*m,
-//				blas_functions);
-//    }
-//    free(predict_nodes);
-//    return 0;
-//}
-
-
 /*
  * Some free routines. Some of them are nontrivial since a lot of
  * sharing happens across objects (they *must* be called in the
@@ -433,11 +409,3 @@ static void print_string_stdout(const char *s)
 	fputs(s,stdout);
 	fflush(stdout);
 }
-
-/* provide convenience wrapper */
-//void set_verbosity(int verbosity_flag){
-//	if (verbosity_flag)
-//		svm_set_print_string_function(&print_string_stdout);
-//	else
-//		svm_set_print_string_function(&print_null);
-//}
