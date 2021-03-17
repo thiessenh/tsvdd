@@ -2,7 +2,7 @@ from tsvdd.SVDD import SVDD
 import numpy as np
 from sklearn.metrics import matthews_corrcoef, cohen_kappa_score, balanced_accuracy_score
 
-from ._query_strategies import query_strategies
+from .query_strategies import query_strategies
 
 
 class alSVDD(SVDD):
@@ -16,7 +16,7 @@ class alSVDD(SVDD):
                  coef0=0.0, tol=1e-5, sigma='auto', triangular='auto',
                  normalization_method='exp', shrinking=False, cache_size=200, max_iter=100000,
                  verbose=True, query_strategy='uncertainty_outside',
-                 update_in=10, update_out=0.01, metric='MCC', n_iter_max=50, start_up_phase=5):
+                 update_in=10, update_out=0.01, metric='MCC', max_iter_AL=50, start_up_phase=5):
         """
         @param kernel: Currently on tga supported for active learning.
         @param nu: Expected outlier ratio
@@ -36,7 +36,7 @@ class alSVDD(SVDD):
         @param update_in: Weight update for annotated inliers
         @param update_out:Weight update for annotated outliers
         @param metric: Metric for monitoring and stopping learning process
-        @param n_iter_max: Upper bound for oracle acquisitions
+        @param max_iter_AL: Upper bound for oracle acquisitions
         @param start_up_phase: Minimum number of iterations; Likewise parameter for AEQ and LS
         """
         super().__init__(kernel=kernel, nu=nu, C=C, degree=degree, gamma=gamma,
@@ -52,7 +52,7 @@ class alSVDD(SVDD):
         self.metric = metric
         self.update_in = update_in
         self.update_out = update_out
-        self.n_iter_max = n_iter_max
+        self.max_iter_AL = max_iter_AL
 
         # active learning process
         self.radii = list()
@@ -97,7 +97,7 @@ class alSVDD(SVDD):
         if self.nu:
             self.C = 1.0 / (self.nu * X.shape[0])
 
-        for i in range(self.n_iter_max):
+        for i in range(self.max_iter_AL):
 
             self._info(f'Iteration: {i}')
 
@@ -148,7 +148,7 @@ class alSVDD(SVDD):
         """
         Get Query Strategy.
         """
-        from ._query_strategies import get_QS
+        from .query_strategies import get_QS
         return get_QS(self.query_strategy)
 
     def _calc_quality(self, y_true, y_pred):
