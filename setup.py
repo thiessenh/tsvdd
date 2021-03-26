@@ -1,5 +1,3 @@
-import os
-import distutils.extension
 from setuptools import setup
 import setuptools.extension
 from Cython.Build import cythonize
@@ -9,9 +7,9 @@ import numpy
 # with open("README.md", "r", encoding="utf-8") as fh:
 #    long_description = fh.read()
 
-global_alignment = setuptools.extension.Extension(
-    "tsvdd.ga",
-    sources=["tsvdd/ga.pyx", "src/ga/logGAK.c", "src/ga/matrixLogGAK.c"],
+kernels = setuptools.extension.Extension(
+    "tsvdd.kernels",
+    sources=["tsvdd/kernels.pyx", "src/ga/logGAK.c", "src/ga/matrixLogGAK.c"],
     include_dirs=[numpy.get_include(), 'src/ga/'],
     extra_compile_args=['-fopenmp', '-O3'],
     extra_link_args=['-fopenmp'])
@@ -45,4 +43,4 @@ setup(
             'pytest-cov']},
     include_package_data=True,
     python_requires=">=3.6",
-    ext_modules=cythonize([global_alignment, libsvdd]))
+    ext_modules=cythonize([kernels, libsvdd]))

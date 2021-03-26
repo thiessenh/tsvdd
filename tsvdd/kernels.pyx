@@ -9,6 +9,7 @@ http://lear.inrialpes.fr/people/gaidon/
 LICENSE: cf. logGAK.c
 """
 
+from dtaidistance import dtw
 import numpy as np
 cimport numpy as np
 
@@ -245,3 +246,67 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
 #     else:
 #         raise ValueError(f'normalization_method=`{normalization_method}` is not a valid argument.')
 #     return res
+
+
+def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
+    """
+    RBF Kernel with DTW as distance substitute.
+    @param seq:
+    @return:
+    """
+    # get data dimensions
+    cdef int n_instances = seq.shape[0]
+    cdef int nLength = seq.shape[1]
+    cdef int nDim = seq.shape[2]
+
+    # check preconditions
+    assert seq.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
+    assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
+    X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
+    for i in range(n_instances):
+        seq_1 = seq[i]
+        for j in range(n_instances):
+            seq_2 = seq[j]
+            # DTW(x_i, x_j)
+            X_[i, j] = dtw.distance_fast(seq_1, seq_2)
+    # \exp (- \frac{X_^ 2}{\sigma^2})
+    return np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
+        (n_instances, n_instances))
+
+
+def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,ndim=2] test, np.ndarray[np.int64_t,ndim=1] sv_indices, double sigma):
+    """
+    RBF Kernel with DTW as distance substitute.
+    @param seq:
+    @return:
+    """
+    # get data dimensions
+    cdef int n_instances_train = train.shape[0]
+    cdef int n_instances_test = test.shape[0]
+
+    # check preconditions
+    assert train.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
+    assert test.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
+    assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
+
+    X_ = np.ones((n_instances_test, n_instances_train), dtype=np.float64, order='C')
+    for i in range(n_instances_test):
+        seq_1 = test[i]
+        for j in sv_indices:
+            seq_2 = train[j]
+            # DTW(x_i, x_j)
+            X_[i, j] = dtw.distance_fast(seq_1, seq_2)
+    # \exp (- \frac{X_^ 2}{\sigma^2})
+    X = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
+        (n_instances_test, n_instances_train))
+
+    K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
+    for i in range(n_instances_test):
+        seq_1 = test[i]
+        K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
+    K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
+        (n_instances_test))
+
+    return X, K_xx_s
+
+

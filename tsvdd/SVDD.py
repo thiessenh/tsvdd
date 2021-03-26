@@ -1,8 +1,8 @@
 from tsvdd import libsvdd
 import numpy as np
 import pandas as pd
-from .ga import test_kernel_matrix, train_kernel_matrix
-from .utils import svmlib_kernel_format, sampled_gak_sigma
+from .kernels import test_kernel_matrix, train_kernel_matrix, test_gds_dtw, train_gds_dtw
+from .utils import sampled_gak_sigma
 import time
 from dtaidistance import dtw
 import warnings
@@ -126,15 +126,18 @@ class SVDD:
                 self.kernel_duration = time.time() - start
             elif self.kernel == 'gds_dtw':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{DTW(x_i, x_j)^ 2}{\sigma^2})
-                X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
-                for i in range(n_instances):
-                    seq_1 = self.X_fit[i]
-                    for j in range(n_instances):
-                        seq_2 = self.X_fit[j]
-                        # DTW(x_i, x_j)
-                        X_[i, j] = dtw.distance_fast(seq_1, seq_2)
-                # \exp (- \frac{X_^ 2}{\sigma^2})
-                self.train_gram = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2))).reshape((n_instances, n_instances))
+                # X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
+                # for i in range(n_instances):
+                #     seq_1 = self.X_fit[i]
+                #     for j in range(n_instances):
+                #         seq_2 = self.X_fit[j]
+                #         # DTW(x_i, x_j)
+                #         X_[i, j] = dtw.distance_fast(seq_1, seq_2)
+                # # \exp (- \frac{X_^ 2}{\sigma^2})
+                # self.train_gram = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2))).reshape((n_instances, n_instances))
+
+                X_ = train_gds_dtw(self.X_fit, self.sigma)
+                self.train_gram = X_
             elif self.kernel == 'rbf':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{||x_i, x_j||^ 2}{\sigma^2})
                 X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
@@ -225,24 +228,28 @@ class SVDD:
                     K_xx_s = gram_diagonal_test
             elif self.kernel == 'gds_dtw':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{DTW(x_i, x_j)^ 2}{\sigma^2})
+                # sv_indices are passed to gram matrix computation
                 sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='C')
+                # libsvm starts counting with 1
                 sv_indices = sv_indices - 1
-                X_ = np.ones((n_instances, self.fit_shape[0]), dtype=np.float64, order='C')
-                for i in range(n_instances):
-                    seq_1 = X[i]
-                    for j in sv_indices:
-                        seq_2 = self.X_fit[j]
-                        # DTW(x_i, x_j)
-                        X_[i, j] = dtw.distance_fast(seq_1, seq_2)
-                # \exp (- \frac{X_^ 2}{\sigma^2})
-                X_ = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2)))
-                # calculate gram diagonal
-                K_xx_s_ = np.ones(n_instances, dtype=np.float64, order='C')
-                for i in range(n_instances):
-                    seq_1 = X[i]
-                    K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
-                K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self.sigma, 2)))
-                X = X_.reshape((n_instances, self.fit_shape[0]))
+
+                X, K_xx_s = test_gds_dtw(self.X_fit, X, sv_indices, self.sigma)
+                # X_ = np.ones((n_instances, self.fit_shape[0]), dtype=np.float64, order='C')
+                # for i in range(n_instances):
+                #     seq_1 = X[i]
+                #     for j in sv_indices:
+                #         seq_2 = self.X_fit[j]
+                #         # DTW(x_i, x_j)
+                #         X_[i, j] = dtw.distance_fast(seq_1, seq_2)
+                # # \exp (- \frac{X_^ 2}{\sigma^2})
+                # X_ = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2)))
+                # # calculate gram diagonal
+                # K_xx_s_ = np.ones(n_instances, dtype=np.float64, order='C')
+                # for i in range(n_instances):
+                #     seq_1 = X[i]
+                #     K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
+                # K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self.sigma, 2)))
+                # X = X_.reshape((n_instances, self.fit_shape[0]))
             elif self.kernel == 'rbf':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{||x_i, x_j||^ 2}{\sigma^2})
                 sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='C')
@@ -321,12 +328,12 @@ class SVDD:
         """
         Check if user provided gram matrix has correct shape and is c-contiguous.
         """
-        # check shapes for predict
+        # check shapes for predict; gram matrix --> predict gram matrix; self.fit_shape --> train gram matrix
         if is_predict:
             if K_xx is None:
                 raise ValueError('K_xx can not be None')
-            if gram_matrix.shape[0] != K_xx.shape[0]:
-                raise ValueError("Diagonal of gram matrix has wrong length.")
+            if self.fit_shape[0] != K_xx.shape[0]:
+                raise ValueError(f"Diagonal of gram matrix `gram matrix shape=({gram_matrix.shape})` has wrong length `diagonal length={K_xx.shape[0]}`.")
             if self.fit_shape[0] != gram_matrix.shape[1]:
                 raise ValueError("Prediction matrix does not fit train matrix.")
             is_fit = False
