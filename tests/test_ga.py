@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from tsvdd.ga import tga_dissimilarity, train_kernel_matrix, test_kernel_matrix
+from tsvdd.kernels import tga_dissimilarity, train_kernel_matrix, test_kernel_matrix
 
 
 class TestKernel:

@@ -5,7 +5,6 @@ from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.model_selection import train_test_split
 from tsvdd.utils import svmlib_kernel_format
 import pytest
-from tsvdd.ga import train_kernel_matrix, test_kernel_matrix
 
 
 class TestSVDD:
