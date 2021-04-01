@@ -369,4 +369,3 @@ class SVDD:
             X = np.ascontiguousarray(X, dtype=np.float64)
 
         return X
-

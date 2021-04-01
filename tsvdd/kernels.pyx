@@ -141,6 +141,7 @@ def train_kernel_matrix(np.ndarray[np.double_t,ndim=3] seq, double sigma, int tr
       mlnk: double,
         minus the normalized log-kernel
         (logGAK(seq1,seq1)+logGAK(seq2,seq2))/2 - logGAK(seq1,seq2)
+        @param normalization_method: 'exp'
 
     """
     # get data dimensions
