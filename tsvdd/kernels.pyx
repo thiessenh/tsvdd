@@ -271,7 +271,7 @@ def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
             # DTW(x_i, x_j)
             X_[i, j] = dtw.distance_fast(seq_1, seq_2)
     # \exp (- \frac{X_^ 2}{\sigma^2})
-    return np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
+    return np.exp(-.5*np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
         (n_instances, n_instances))
 
 
@@ -298,7 +298,7 @@ def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,nd
             # DTW(x_i, x_j)
             X_[i, j] = dtw.distance_fast(seq_1, seq_2)
     # \exp (- \frac{X_^ 2}{\sigma^2})
-    X = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
+    X = np.exp(-.5*np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
         (n_instances_test, n_instances_train))
 
     K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
