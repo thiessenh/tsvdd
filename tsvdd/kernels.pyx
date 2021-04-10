@@ -263,19 +263,14 @@ def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
     # check preconditions
     assert seq.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
     assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
-    X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
-    for i in range(n_instances):
-        seq_1 = seq[i]
-        for j in range(n_instances):
-            seq_2 = seq[j]
-            # DTW(x_i, x_j)
-            X_[i, j] = dtw.distance_fast(seq_1, seq_2)
-    # \exp (- \frac{X_^ 2}{\sigma^2})
-    return np.exp(-.5*np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
+
+    res = dtw.distance_matrix_fast(seq)
+
+    return np.exp(-.5*np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
         (n_instances, n_instances))
 
 
-def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,ndim=2] test, np.ndarray[np.int64_t,ndim=1] sv_indices, double sigma):
+def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,ndim=2] test, double sigma):
     """
     RBF Kernel with DTW as distance substitute.
     @param seq:
@@ -283,31 +278,54 @@ def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,nd
     """
     # get data dimensions
     cdef int n_instances_train = train.shape[0]
+    cdef int n_length_train = train.shape[1]
     cdef int n_instances_test = test.shape[0]
+    cdef int n_length_test = test.shape[1]
 
     # check preconditions
     assert train.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
     assert test.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
     assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
 
-    X_ = np.ones((n_instances_test, n_instances_train), dtype=np.float64, order='C')
-    for i in range(n_instances_test):
-        seq_1 = test[i]
-        for j in sv_indices:
-            seq_2 = train[j]
-            # DTW(x_i, x_j)
-            X_[i, j] = dtw.distance_fast(seq_1, seq_2)
-    # \exp (- \frac{X_^ 2}{\sigma^2})
-    X = np.exp(-.5*np.divide(np.power(X_.ravel(), 2), np.power(sigma, 2))).reshape(
-        (n_instances_test, n_instances_train))
+    if n_length_train == n_length_test:
+        big_boy_array = np.vstack((test, train))
+        big_boy_array = big_boy_array.astype(dtype=np.float64, order='C')
 
-    K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
-    for i in range(n_instances_test):
-        seq_1 = test[i]
-        K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
-    K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
-        (n_instances_test))
+        assert big_boy_array.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
 
-    return X, K_xx_s
+        print(big_boy_array.shape)
+        block = ((0, n_instances_test), (n_instances_test, big_boy_array.shape[0]))
+        print(block)
+        res = dtw.distance_matrix_fast(big_boy_array, block=block)
+        print(res.shape)
+        res_block = res[0:n_instances_test, n_instances_test:big_boy_array.shape[0]]
+        print(res_block.shape)
+        K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
+        for i in range(n_instances_test):
+            seq_1 = test[i]
+            K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
+        K_xx_s = np.exp(-.5*np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
+            n_instances_test)
+
+        return np.exp(-.5*np.divide(np.power(res_block.ravel(), 2), np.power(sigma, 2))).reshape(
+            (n_instances_test, n_instances_train)), K_xx_s
+    else:
+
+        res = np.zeros(shape=(n_instances_test, n_instances_train), dtype=np.float64, order='C')
+        for i in range(n_instances_test):
+            seq_1 = test[i]
+            for j in range(n_instances_train):
+                seq_2 = train[j]
+                res[i, j] = dtw.distance_fast(seq_1, seq_2)
+        res = np.exp(-.5 * np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
+            (n_instances_test, n_instances_train))
+
+        K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
+        for i in range(n_instances_test):
+            seq_1 = test[i]
+            K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
+        K_xx_s_ = np.exp(-.5 * np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
+            n_instances_test)
+        return res, K_xx_s_
 
 
