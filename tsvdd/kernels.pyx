@@ -258,13 +258,18 @@ def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
     # get data dimensions
     cdef int n_instances = seq.shape[0]
     cdef int nLength = seq.shape[1]
-    cdef int nDim = seq.shape[2]
 
     # check preconditions
     assert seq.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
     assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
 
     res = dtw.distance_matrix_fast(seq)
+
+    # dtaidistance==2.1.2 returns upper triangular, rest is inf
+    # set info to zero
+    res[res == np.inf] = 0
+    # mirror along diagonal
+    res = res + res.T - np.diag(np.diag(res))
 
     return np.exp(-.5*np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
         (n_instances, n_instances))
