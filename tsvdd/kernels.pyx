@@ -278,7 +278,9 @@ def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
 def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,ndim=2] test, double sigma):
     """
     RBF Kernel with DTW as distance substitute.
-    @param seq:
+    @param train: data from fit
+    @param test: prediction data
+    @param sigma: sigma, determine with, e.g., Rule of Cuturi
     @return:
     """
     # get data dimensions

@@ -233,23 +233,8 @@ class SVDD:
                 # libsvm starts counting with 1
                 sv_indices = sv_indices - 1
 
-                X, K_xx_s = test_gds_dtw(self.X_fit, X, sv_indices, self.sigma)
-                # X_ = np.ones((n_instances, self.fit_shape[0]), dtype=np.float64, order='C')
-                # for i in range(n_instances):
-                #     seq_1 = X[i]
-                #     for j in sv_indices:
-                #         seq_2 = self.X_fit[j]
-                #         # DTW(x_i, x_j)
-                #         X_[i, j] = dtw.distance_fast(seq_1, seq_2)
-                # # \exp (- \frac{X_^ 2}{\sigma^2})
-                # X_ = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2)))
-                # # calculate gram diagonal
-                # K_xx_s_ = np.ones(n_instances, dtype=np.float64, order='C')
-                # for i in range(n_instances):
-                #     seq_1 = X[i]
-                #     K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
-                # K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self.sigma, 2)))
-                # X = X_.reshape((n_instances, self.fit_shape[0]))
+                X, K_xx_s = test_gds_dtw(self.X_fit, X, self.sigma)
+            # TODO: replace with fast_rbf
             elif self.kernel == 'rbf':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{||x_i, x_j||^ 2}{\sigma^2})
                 sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='C')
