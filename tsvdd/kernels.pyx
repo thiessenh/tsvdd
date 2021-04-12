@@ -300,13 +300,9 @@ def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,nd
 
         assert big_boy_array.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
 
-        print(big_boy_array.shape)
         block = ((0, n_instances_test), (n_instances_test, big_boy_array.shape[0]))
-        print(block)
         res = dtw.distance_matrix_fast(big_boy_array, block=block)
-        print(res.shape)
         res_block = res[0:n_instances_test, n_instances_test:big_boy_array.shape[0]]
-        print(res_block.shape)
         K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
         for i in range(n_instances_test):
             seq_1 = test[i]
