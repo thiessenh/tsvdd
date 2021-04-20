@@ -18,7 +18,7 @@ class alSVDD(SVDD):
                  verbose=True, query_strategy='uncertainty_outside',
                  update_in=10, update_out=0.01, metric='MCC', max_iter_AL=50, start_up_phase=5):
         """
-        @param kernel: Currently on tga supported for active learning.
+        @param kernel: Currently only tga supported for active learning.
         @param nu: Expected outlier ratio
         @param C: If nu not provided, C will be used. C can be calculated as 1/(outlier_ratio * n_instances)
         @param degree: To be removed
