@@ -65,12 +65,11 @@ class alSVDD(SVDD):
         self.L_in = list()
         self.L_out = list()
 
-    def learn(self, X, y, K_xx_s=None):
+    def learn(self, X, y):
         """
         Starts active Learning cycle.
         @param X: numpy array containg training data
         @param y: annotations, server as oracle
-        @param K_xx_s: when X is a precomputed matrix, K_xx_s must be provided
 
         """
 
@@ -96,6 +95,11 @@ class alSVDD(SVDD):
         # ugly, but needed for W
         if self.nu:
             self.C = 1.0 / (self.nu * X.shape[0])
+
+        if self.kernel == 'precomputed':
+            K_xx_s = np.diag(X)
+        else:
+            K_xx_s = None
 
         for i in range(self.max_iter_AL):
 
