@@ -224,7 +224,7 @@ class SVDD:
                     K_xx_s = np.ones(n_instances)
                 else:
                     gram_diagonal_test = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
-                    gram_diagonal_test = np.diagonal(gram_diagonal_test)
+                    gram_diagonal_test = np.diagonal(gram_diagonal_test) # This is incorrect. gram_diagonal_test's diagonal does not contain K(x_i,x_i)
                     K_xx_s = gram_diagonal_test
             elif self.kernel == 'gds_dtw':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{DTW(x_i, x_j)^ 2}{\sigma^2})
@@ -309,7 +309,7 @@ class SVDD:
             if self.triangular == 'auto':
                 self.triangular = .5 * n_length
 
-    def _check_kernel_matrix(self, gram_matrix, is_fit=True, is_predict=False, K_xx=None):
+    def _check_kernel_matrix(self, predict_matrix, is_fit=True, is_predict=False, K_xx=None):
         """
         Check if user provided gram matrix has correct shape and is c-contiguous.
         """
@@ -317,23 +317,23 @@ class SVDD:
         if is_predict:
             if K_xx is None:
                 raise ValueError('K_xx can not be None')
-            if self.fit_shape[0] != K_xx.shape[0]:
-                raise ValueError(f"Diagonal of gram matrix `gram matrix shape=({gram_matrix.shape})` has wrong length `diagonal length={K_xx.shape[0]}`.")
-            if self.fit_shape[0] != gram_matrix.shape[1]:
+            if predict_matrix.shape[0] != K_xx.shape[0]:
+                raise ValueError(f"Diagonal of predict matrix `gram matrix shape=({predict_matrix.shape})` has wrong length `diagonal length={K_xx.shape[0]}`.")
+            if self.fit_shape[0] != predict_matrix.shape[1]:
                 raise ValueError("Prediction matrix does not fit train matrix.")
             is_fit = False
         # check shapes during fit
         if is_fit:
-            if gram_matrix.shape[0] != gram_matrix.shape[0]:
+            if predict_matrix.shape[0] != predict_matrix.shape[0]:
                 raise ValueError("Kernel matrix should be symmetric.")
         # check if C_CONTIGUOUS
-        if not gram_matrix.flags['C_CONTIGUOUS']:
-            gram_matrix = np.ascontiguousarray(gram_matrix, dtype=np.float64)
+        if not predict_matrix.flags['C_CONTIGUOUS']:
+            predict_matrix = np.ascontiguousarray(predict_matrix, dtype=np.float64)
         if K_xx is not None and not K_xx.flags['C_CONTIGUOUS']:
             K_xx = np.ascontiguousarray(K_xx, dtype=np.float64)
         if K_xx is not None and K_xx.ndim != 1:
             raise ValueError('K_xx_s ndim unequal 1')
-        return gram_matrix, K_xx
+        return predict_matrix, K_xx
 
     def _check_input_array(self, X):
         """
