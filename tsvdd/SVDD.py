@@ -7,6 +7,7 @@ import time
 from dtaidistance import dtw
 import warnings
 
+
 class SVDD:
     """
     Support Vector Data Description
@@ -75,9 +76,9 @@ class SVDD:
 
         if kernel not in self._kernels:
             raise ValueError(f'Unknown kernel:{kernel}')
-        if self.tol > 10e-3:
+        if self.tol > 10e-3 and verbose:
             warnings.warn(f'Large tolerance = {tol} might lead to poor results.', Warning)
-        if self.tol < 10e-7:
+        if self.tol < 10e-7 and verbose:
             warnings.warn(f'Small tolerance = {tol} might result in long training times.', Warning)
 
     def __str__(self):

@@ -1,5 +1,6 @@
 from tsvdd.SVDD import SVDD
 import numpy as np
+import warnings
 from sklearn.metrics import matthews_corrcoef, cohen_kappa_score, balanced_accuracy_score
 
 from .query_strategies import query_strategies
@@ -65,6 +66,9 @@ class alSVDD(SVDD):
         self.L_in = list()
         self.L_out = list()
 
+        # evaluation
+        self.qms_on_train = list()
+
     def learn(self, X, y):
         """
         Starts active Learning cycle.
@@ -118,6 +122,9 @@ class alSVDD(SVDD):
             # quality score
             score = self._calc_quality(y, y_pred)
             self.quality_metrics.append(score)
+            # evaluation
+            _mcc = matthews_corrcoef(y, y_pred)
+            self.qms_on_train.append(_mcc)
             # Average End Quality
             average_end_quality = self._calc_AEQ(i, self.start_up_phase)
             self.AEQs.append(average_end_quality)
@@ -126,7 +133,7 @@ class alSVDD(SVDD):
             self.LSs.append(learning_stability)
             self._info(f'BA: {balanced_accuracy_score(y, y_pred)}')
             # stop active learning cycle when learning stability reaches zero; but allow start-up phase
-            if learning_stability <= 0 and i not in range(self.start_up_phase + 1): # first iteration does not count.
+            if learning_stability <= 0 and i not in range(self.start_up_phase + 2): # first iteration does not count.
                 break
             # get most informative unknown sample
             idx = QS_function(self.U, self.L_in, self.L_out, y_vals)
@@ -164,7 +171,12 @@ class alSVDD(SVDD):
         """
         if self.metric == 'MCC':
             annotated_indices = self.L_in + self.L_out
-            return matthews_corrcoef(y_true[annotated_indices], y_pred[annotated_indices])
+            if not self.verbose:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    return matthews_corrcoef(y_true[annotated_indices], y_pred[annotated_indices])
+            else:
+                return matthews_corrcoef(y_true[annotated_indices], y_pred[annotated_indices])
         if self.metric == 'kappa':
             annotated_indices = self.L_in + self.L_out
             return cohen_kappa_score(y_true[annotated_indices], y_pred[annotated_indices])
