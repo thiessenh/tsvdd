@@ -18,7 +18,7 @@ class TestKernels:
             for j in range(n_train):
                 seq_2 = c_train_matrix[j]
                 res[i, j] = dtw.distance_fast(seq_1, seq_2)
-        res = np.exp(-.5 * np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
+        res = np.exp(-np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
             (n_train, n_train))
         res_cython = train_gds_dtw(c_train_matrix, sigma)
         np.testing.assert_array_equal(res, res_cython)
@@ -40,14 +40,14 @@ class TestKernels:
             for j in range(n_train):
                 seq_2 = c_train_matrix[j]
                 res[i, j] = dtw.distance_fast(seq_1, seq_2)
-        res = np.exp(-.5 * np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
+        res = np.exp(-np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
             (n_test, n_train))
 
         K_xx_s_ = np.ones(n_test, dtype=np.float64, order='C')
         for i in range(n_test):
             seq_1 = c_test_matrix[i]
             K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
-        K_xx_s_ = np.exp(-.5 * np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
+        K_xx_s_ = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
             n_test)
 
         res_cython, K_xx_s_cython_ = test_gds_dtw(c_train_matrix, c_test_matrix, sigma)

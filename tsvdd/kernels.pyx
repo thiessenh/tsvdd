@@ -271,7 +271,7 @@ def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
     # mirror along diagonal
     res = res + res.T - np.diag(np.diag(res))
 
-    return np.exp(-.5*np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
+    return np.exp(-np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
         (n_instances, n_instances))
 
 
@@ -307,10 +307,10 @@ def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,nd
         for i in range(n_instances_test):
             seq_1 = test[i]
             K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
-        K_xx_s = np.exp(-.5*np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
+        K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
             n_instances_test)
 
-        return np.exp(-.5*np.divide(np.power(res_block.ravel(), 2), np.power(sigma, 2))).reshape(
+        return np.exp(-np.divide(np.power(res_block.ravel(), 2), np.power(sigma, 2))).reshape(
             (n_instances_test, n_instances_train)), K_xx_s
     else:
 
@@ -320,14 +320,14 @@ def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,nd
             for j in range(n_instances_train):
                 seq_2 = train[j]
                 res[i, j] = dtw.distance_fast(seq_1, seq_2)
-        res = np.exp(-.5 * np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
+        res = np.exp(-np.divide(np.power(res.ravel(), 2), np.power(sigma, 2))).reshape(
             (n_instances_test, n_instances_train))
 
         K_xx_s_ = np.ones(n_instances_test, dtype=np.float64, order='C')
         for i in range(n_instances_test):
             seq_1 = test[i]
             K_xx_s_[i] = dtw.distance_fast(seq_1, seq_1)
-        K_xx_s_ = np.exp(-.5 * np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
+        K_xx_s_ = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(sigma, 2))).reshape(
             n_instances_test)
         return res, K_xx_s_
 
