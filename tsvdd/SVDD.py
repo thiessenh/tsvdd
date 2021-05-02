@@ -176,6 +176,7 @@ class SVDD:
             gamma=self.gamma, epsilon=self.epsilon, max_iter=self.max_iter)
 
         self.svdd_duration = time.time() - start
+        self.n_SV = len(self.support_)
         self.is_fit = True
 
     def fit_predict(self, X):
