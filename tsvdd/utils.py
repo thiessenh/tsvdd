@@ -37,7 +37,7 @@ def sampled_gak_sigma(X, n_samples, random_state: np.random.RandomState = None, 
     else:
         n_instances, n_length = X.shape
         _X = X
-    random_state = np.random.RandomState() if random_state is None else random_state
+    random_state = np.random.default_rng(42) if random_state is None else random_state
     replace = True if n_samples > n_instances else False
 
     medians = np.empty(n_samples)
