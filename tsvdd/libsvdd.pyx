@@ -118,15 +118,11 @@ LIBSVM_KERNEL_TYPES = ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed']
 def fit(
     np.ndarray[np.float64_t, ndim=2, mode='c'] X,
     np.ndarray[np.float64_t, ndim=1, mode='c'] Y,
-    int svm_type=0, kernel='rbf', int degree=3,
-    double gamma=0.1, double coef0=0., double tol=1e-3,
-    double C=1., double nu=0.5, double epsilon=0.1,
-    np.ndarray[np.float64_t, ndim=1, mode='c']
-        class_weight=np.empty(0),
+    int svm_type=0, kernel='rbf',
+    double tol=1e-3, double C=1.,
     np.ndarray[np.float64_t, ndim=1, mode='c']
         sample_weight=np.empty(0),
-    int shrinking=1, int probability=0,
-    double cache_size=100., int max_iter=1000000):
+    int shrinking=1, double cache_size=100., int max_iter=1000000):
     """
     Train the model using libsvm (low-level method)
 
@@ -218,6 +214,13 @@ def fit(
     cdef np.npy_intp SV_len
     cdef np.npy_intp nr
 
+    cdef np.ndarray[np.float64_t, ndim=1, mode='c'] class_weight = np.empty(0)
+    cdef int degree = 3
+    cdef double gamma=0.1
+    cdef double coef0=0.0
+    cdef double epsilon=0.1
+    cdef int probability=0
+    cdef double nu = 0.5
 
     if len(sample_weight) == 0:
         sample_weight = np.ones(X.shape[0], dtype=np.float64)
@@ -337,8 +340,7 @@ def predict(np.ndarray[np.float64_t, ndim=2, mode='c'] X,
             np.ndarray[np.float64_t, ndim=1, mode='c'] intercept,
             np.ndarray[np.float64_t, ndim=1, mode='c'] probA=np.empty(0),
             np.ndarray[np.float64_t, ndim=1, mode='c'] probB=np.empty(0),
-            int svm_type=0, kernel='rbf', int degree=3,
-            double gamma=0.1, double coef0=0.,
+            int svm_type=0, kernel='rbf',
             np.ndarray[np.float64_t, ndim=1, mode='c']
                 class_weight=np.empty(0),
             np.ndarray[np.float64_t, ndim=1, mode='c']
@@ -397,6 +399,9 @@ def predict(np.ndarray[np.float64_t, ndim=2, mode='c'] X,
     cdef svm_parameter param
     cdef svm_model *model
     cdef int rv
+    cdef int degree = 3
+    cdef double gamma = 0.1
+    cdef double coef0 = 0.0
 
     cdef np.ndarray[np.int32_t, ndim=1, mode='c'] \
         class_weight_label = np.arange(class_weight.shape[0], dtype=np.int32)

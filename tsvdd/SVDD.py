@@ -14,22 +14,18 @@ class SVDD:
     """
     _kernels = ["precomputed", "tga", "gds_dtw", "rbf"]
 
-    def __init__(self, kernel='tga', nu=None, C=0.02, degree=3, gamma=1,
-                 coef0=0.0, tol=1e-4, sigma='auto', triangular='auto',
-                 normalization_method='exp', shrinking=False, cache_size=200, max_iter=1000000,
-                 verbose=True):
+    def __init__(self, kernel='tga', nu=0.05, C=None, tol=1e-4,
+                 sigma='auto', triangular='auto', normalization_method='exp',
+                 shrinking=False, cache_size=200, max_iter=1000000, verbose=True):
         """
         @param kernel: Choose among kernels ["precomputed", "tga", "gds_dtw", "rbf"]
         @param nu: Expected outlier ratio
         @param C: If nu not provided, C will be used. C can be calculated as 1/(outlier_ratio * n_instances)
-        @param degree: To be removed
-        @param gamma: To be removed
-        @param coef0: To be removed
         @param tol: Stopping criteria for SMO optimization.
         @param sigma: Sigma for Gaussian-like kernels.
         @param triangular: For tga kernel
         @param normalization_method: Method to normalize tga kernel.
-        @param shrinking: Whether to remove bounded \alphas from working set during optimization
+        @param shrinking: Whether to remove bounded \alphas from working set selection during optimization
         @param cache_size: Cache size
         @param verbose: Set verbosity accordingly.
         """
@@ -43,13 +39,9 @@ class SVDD:
         self.intercept_ = None
         self._probA = None
         self._probB = None
-        self.degree = degree
         self.shrinking = shrinking
         self.fit_shape = None
         self.max_iter = max_iter
-        self.gamma = gamma
-        # move to libsvdd.pyx
-        self.coef0 = coef0
         self.tol = tol
         self.cache_size = cache_size
         self.r_square = .0
@@ -60,12 +52,6 @@ class SVDD:
         # move to libsvdd.pyx; but keep here for C calculation
         self.nu = nu
         self.verbose = verbose
-        # move to libsvdd.pyx
-        self.class_weight_ = np.empty(0, dtype=np.float64)
-        # move to libsvdd.pyx
-        self.probability = False
-        # move to libsvdd.pyx
-        self.epsilon = 0
         self.is_fit = False
         self.n_SV = None
         self.r_square = None
@@ -73,13 +59,6 @@ class SVDD:
         self.kernel_duration = None
         self.svdd_duration = None
         self.train_gram = None
-
-        if kernel not in self._kernels:
-            raise ValueError(f'Unknown kernel:{kernel}')
-        if self.tol > 10e-3 and verbose:
-            warnings.warn(f'Large tolerance = {tol} might lead to poor results.', Warning)
-        if self.tol < 10e-7 and verbose:
-            warnings.warn(f'Small tolerance = {tol} might result in long training times.', Warning)
 
     def __str__(self):
         return f'SVDD(kernel={self.kernel}, nu={self.nu}, C={self.C}, sigma={self.sigma},' \
@@ -93,6 +72,12 @@ class SVDD:
         @param y: y is array, but not yet implemented.
         @param W: W are instance weights, primarily used for active learning.
         """
+        if self.kernel not in self._kernels:
+            raise ValueError(f'Unknown kernel:{self.kernel}')
+        if self.tol > 10e-3 and self.verbose:
+            warnings.warn(f'Large tolerance = {self.tol} might lead to poor results.', Warning)
+        if self.tol < 10e-7 and self.verbose:
+            warnings.warn(f'Small tolerance = {self.tol} might result in long training times.', Warning)
 
         # distinguish between precomputed and built-in kernels
         if self.kernel == 'precomputed':
@@ -122,25 +107,13 @@ class SVDD:
             # start computing kernels
             if self.kernel == 'tga':
                 start = time.time()
-                _X = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
+                _X = train_kernel_matrix(self.X_fit, self._sigma, self._triangular, self.normalization_method)
                 self.train_gram = _X
                 self.kernel_duration = time.time() - start
             elif self.kernel == 'gds_dtw':
-                # GDS_{DTW}(x_i, x_j) = \exp (- \frac{DTW(x_i, x_j)^ 2}{\sigma^2})
-                # X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
-                # for i in range(n_instances):
-                #     seq_1 = self.X_fit[i]
-                #     for j in range(n_instances):
-                #         seq_2 = self.X_fit[j]
-                #         # DTW(x_i, x_j)
-                #         X_[i, j] = dtw.distance_fast(seq_1, seq_2)
-                # # \exp (- \frac{X_^ 2}{\sigma^2})
-                # self.train_gram = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2))).reshape((n_instances, n_instances))
-
-                X_ = train_gds_dtw(self.X_fit, self.sigma)
+                X_ = train_gds_dtw(self.X_fit, self._sigma)
                 self.train_gram = X_
             elif self.kernel == 'rbf':
-                # GDS_{DTW}(x_i, x_j) = \exp (- \frac{||x_i, x_j||^ 2}{\sigma^2})
                 X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
                 for i in range(n_instances):
                     seq_1 = self.X_fit[i]
@@ -149,7 +122,7 @@ class SVDD:
                         # ||x_i, x_j||
                         X_[i, j] = np.linalg.norm(seq_1 - seq_2)
                 # \exp (- \frac{X_^ 2}{\sigma^2})
-                self.train_gram = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2))).reshape((n_instances, n_instances))
+                self.train_gram = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self._sigma, 2))).reshape((n_instances, n_instances))
 
         # check y
         if y is not None:
@@ -168,16 +141,15 @@ class SVDD:
         self.dual_coef_, self.intercept_, self._probA, \
         self._probB, self.r_square, self.rho = libsvdd.fit(
             self.train_gram, y,
-            svm_type=5, sample_weight=W,
-            class_weight=self.class_weight_, kernel='precomputed', C=self.C,
-            nu=self.nu, probability=self.probability, degree=self.degree,
+            svm_type=5, sample_weight=W, kernel='precomputed', C=self._C,
             shrinking=self.shrinking, tol=self.tol,
-            cache_size=self.cache_size, coef0=self.coef0,
-            gamma=self.gamma, epsilon=self.epsilon, max_iter=self.max_iter)
+            cache_size=self.cache_size, max_iter=self.max_iter)
 
         self.svdd_duration = time.time() - start
         self.n_SV = len(self.support_)
         self.is_fit = True
+
+        return self
 
     def fit_predict(self, X):
         """
@@ -220,12 +192,12 @@ class SVDD:
                 if np.array_equal(self.X_fit, X):
                     gram_matrix = self.train_gram
                 else:
-                    gram_matrix = test_kernel_matrix(self.X_fit, X, self.sigma, self.triangular, self.normalization_method, sv_indices)
+                    gram_matrix = test_kernel_matrix(self.X_fit, X, self._sigma, self._triangular, self.normalization_method, sv_indices)
                 X = gram_matrix
                 if self.normalization_method == 'exp':
                     K_xx_s = np.ones(n_instances)
                 else:
-                    gram_diagonal_test = train_kernel_matrix(self.X_fit, self.sigma, self.triangular, self.normalization_method)
+                    gram_diagonal_test = train_kernel_matrix(self.X_fit, self._sigma, self._triangular, self.normalization_method)
                     gram_diagonal_test = np.diagonal(gram_diagonal_test) # This is incorrect. gram_diagonal_test's diagonal does not contain K(x_i,x_i)
                     K_xx_s = gram_diagonal_test
             elif self.kernel == 'gds_dtw':
@@ -235,7 +207,7 @@ class SVDD:
                 # libsvm starts counting with 1
                 sv_indices = sv_indices - 1
 
-                X, K_xx_s = test_gds_dtw(self.X_fit, X, self.sigma)
+                X, K_xx_s = test_gds_dtw(self.X_fit, X, self._sigma)
             # TODO: replace with fast_rbf
             elif self.kernel == 'rbf':
                 # GDS_{DTW}(x_i, x_j) = \exp (- \frac{||x_i, x_j||^ 2}{\sigma^2})
@@ -249,13 +221,13 @@ class SVDD:
                         # ||x_i, x_j||
                         X_[i, j] = np.linalg.norm(seq_1 - seq_2)
                 # \exp (- \frac{X_^ 2}{\sigma^2})
-                X_ = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self.sigma, 2)))
+                X_ = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self._sigma, 2)))
                 # calculate gram diagonal
                 K_xx_s_ = np.ones(n_instances, dtype=np.float64, order='C')
                 for i in range(n_instances):
                     seq_1 = X[i]
                     K_xx_s_[i] = np.linalg.norm(seq_1 - seq_1)
-                K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self.sigma, 2)))
+                K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self._sigma, 2)))
                 X = X_.reshape((n_instances, self.fit_shape[0]))
 
         if dec_vals:
@@ -263,17 +235,24 @@ class SVDD:
                 X, K_xx_s, self.support_, self.support_vectors_, self._n_support,
                 self.dual_coef_, self.intercept_,
                 self._probA, self._probB, svm_type=5, kernel='precomputed',
-                degree=self.degree, coef0=self.coef0, gamma=self.gamma,
                 cache_size=self.cache_size)
         else:
             score = libsvdd.predict(
                 X, K_xx_s, self.support_, self.support_vectors_, self._n_support,
                 self.dual_coef_, self.intercept_,
                 self._probA, self._probB, svm_type=5, kernel='precomputed',
-                degree=self.degree, coef0=self.coef0, gamma=self.gamma,
                 cache_size=self.cache_size)
 
         return score
+
+    def set_params(self, **parameters):
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+        return self
+
+    def get_params(self, deep=True):
+        return {"kernel": self.kernel, "nu": self.nu, "C": self.C, "sigma": self.sigma,
+                "triangular": self.triangular, "normalization_method": self.normalization_method}
 
     def decision_function(self, X, K_xx_s=None):
         """
@@ -293,23 +272,21 @@ class SVDD:
         """
         n_instances = self.fit_shape[0]
         n_length = self.fit_shape[1]
-        if self.C < (1 / n_instances):
-            self.C = (1 / n_instances)
-            warnings.warn(f'C too small, set C to {self.C}', Warning)
-        if self.nu:
+        if self.C is not None:
+            if self.C < (1 / n_instances):
+                self._C = (1 / n_instances)
+                warnings.warn(f'C too small, set C to {self._C}', Warning)
+        elif self.nu:
             if self.nu <= 0 or self.nu > 1:
                 raise ValueError(f'Invalid parameter `nu={self.nu}`.')
             else:
-                self.C = 1 / (self.nu * n_instances)
-        else:
-            # necessary as Cython needs a valid float
-            self.nu = 0.5
+                self._C = 1 / (self.nu * n_instances)
         if self.kernel == 'tga':
             if self.sigma == 'auto':
                 sigmas = sampled_gak_sigma(self.X_fit, 100)
-                self.sigma = sigmas[3]
+                self._sigma = sigmas[3]
             if self.triangular == 'auto':
-                self.triangular = .5 * n_length
+                self._triangular = .5 * n_length
 
     def _check_kernel_matrix(self, predict_matrix, is_fit=True, is_predict=False, K_xx=None):
         """
