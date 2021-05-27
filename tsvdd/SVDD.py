@@ -106,14 +106,17 @@ class SVDD:
 
             # start computing kernels
             if self.kernel == 'tga':
+                self._check_arguments()
                 start = time.time()
                 _X = train_kernel_matrix(self.X_fit, self._sigma, self._triangular, self.normalization_method)
                 self.train_gram = _X
                 self.kernel_duration = time.time() - start
             elif self.kernel == 'gds_dtw':
+                self._check_arguments()
                 X_ = train_gds_dtw(self.X_fit, self._sigma)
                 self.train_gram = X_
             elif self.kernel == 'rbf':
+                self._check_arguments()
                 X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
                 for i in range(n_instances):
                     seq_1 = self.X_fit[i]
@@ -276,6 +279,8 @@ class SVDD:
             if self.C < (1 / n_instances):
                 self._C = (1 / n_instances)
                 warnings.warn(f'C too small, set C to {self._C}', Warning)
+            else:
+                self._C = self.C
         elif self.nu:
             if self.nu <= 0 or self.nu > 1:
                 raise ValueError(f'Invalid parameter `nu={self.nu}`.')
@@ -285,8 +290,14 @@ class SVDD:
             if self.sigma == 'auto':
                 sigmas = sampled_gak_sigma(self.X_fit, 100)
                 self._sigma = sigmas[3]
+            else:
+                self._sigma = self.sigma
             if self.triangular == 'auto':
                 self._triangular = .5 * n_length
+            else:
+                self._triangular = self.triangular
+        elif self.kernel == 'gds_dtw':
+            self._sigma = self.sigma
 
     def _check_kernel_matrix(self, predict_matrix, is_fit=True, is_predict=False, K_xx=None):
         """
