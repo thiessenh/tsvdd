@@ -2,7 +2,7 @@ from tsvdd import libsvdd
 import numpy as np
 import pandas as pd
 from .kernels import test_kernel_matrix, train_kernel_matrix, test_gds_dtw, train_gds_dtw
-from .utils import sampled_gak_sigma
+from .utils import sampled_gak_sigma, compute_rbf_kernel
 import time
 from dtaidistance import dtw
 import warnings
@@ -12,9 +12,9 @@ class SVDD:
     """
     Support Vector Data Description
     """
-    _kernels = ["precomputed", "tga", "gds_dtw", "rbf"]
+    _kernels = ["precomputed", "tga", "gds_dtw", "rbf", "rbf-gak"]
 
-    def __init__(self, kernel='tga', nu=0.05, C=None, tol=1e-4,
+    def __init__(self, kernel='tga', nu=0.05, C=None, tol=1e-4, alpha=.95,
                  sigma='auto', triangular='auto', normalization_method='exp',
                  shrinking=False, cache_size=200, max_iter=1000000, verbose=True):
         """
@@ -59,6 +59,7 @@ class SVDD:
         self.kernel_duration = None
         self.svdd_duration = None
         self.train_gram = None
+        self.alpha = alpha
 
     def __str__(self):
         return f'SVDD(kernel={self.kernel}, nu={self.nu}, C={self.C}, sigma={self.sigma},' \
@@ -78,6 +79,8 @@ class SVDD:
             warnings.warn(f'Large tolerance = {self.tol} might lead to poor results.', Warning)
         if self.tol < 10e-7 and self.verbose:
             warnings.warn(f'Small tolerance = {self.tol} might result in long training times.', Warning)
+        if self.kernel == 'rbf-gak' and not isinstance(X, pd.DataFrame):
+            raise ValueError('X needs to be DataFrame.')
 
         # distinguish between precomputed and built-in kernels
         if self.kernel == 'precomputed':
@@ -106,18 +109,15 @@ class SVDD:
 
             # start computing kernels
             if self.kernel == 'tga':
-                self._check_arguments()
                 start = time.time()
                 _X = train_kernel_matrix(self.X_fit, self._sigma, self._triangular, self.normalization_method)
                 self.train_gram = _X
                 self.kernel_duration = time.time() - start
             elif self.kernel == 'gds_dtw':
-                self._check_arguments()
                 X_ = train_gds_dtw(self.X_fit, self._sigma)
                 self.train_gram = X_
             elif self.kernel == 'rbf':
-                self._check_arguments()
-                X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='c')
+                X_ = np.ones((n_instances, n_instances), dtype=np.float64, order='C')
                 for i in range(n_instances):
                     seq_1 = self.X_fit[i]
                     for j in range(n_instances):
@@ -126,6 +126,15 @@ class SVDD:
                         X_[i, j] = np.linalg.norm(seq_1 - seq_2)
                 # \exp (- \frac{X_^ 2}{\sigma^2})
                 self.train_gram = np.exp(-np.divide(np.power(X_.ravel(), 2), np.power(self._sigma, 2))).reshape((n_instances, n_instances))
+            elif self.kernel == "rbf-gak":
+                start = time.time()
+                X_c = np.reshape(X.values, (X.shape[0], X.shape[1], 1), order='C')
+                _X = train_kernel_matrix(np.ascontiguousarray(X_c), self._sigma, self._triangular, self.normalization_method)
+                self.kernel_duration = time.time() - start
+
+                K_fe = compute_rbf_kernel(self.X_fit)
+
+                self.train_gram = self.alpha * _X + (1 - self.alpha) * K_fe
 
         # check y
         if y is not None:
@@ -232,6 +241,27 @@ class SVDD:
                     K_xx_s_[i] = np.linalg.norm(seq_1 - seq_1)
                 K_xx_s = np.exp(-np.divide(np.power(K_xx_s_.ravel(), 2), np.power(self._sigma, 2)))
                 X = X_.reshape((n_instances, self.fit_shape[0]))
+            elif self.kernel == "rbf-gak":
+                # sv_indices are passed to gram matrix computation
+                sv_indices = np.sort(self.support_).astype(dtype=np.int64, order='C')
+                # libsvm starts counting with 1
+                sv_indices = sv_indices - 1
+                # special case when fit and predict data are equal
+                if np.array_equal(self.X_fit, X):
+                    gram_matrix = self.train_gram
+                else:
+                    X_test = np.reshape(X.values, (X.shape[0], X.shape[1], 1), order='C')
+                    X_train = np.reshape(self.X_fit.values, (self.X_fit.shape[0], self.X_fit.shape[1], 1), order='C')
+                    gram_matrix = test_kernel_matrix(np.ascontiguousarray(X_train), np.ascontiguousarray(X_test), self._sigma, self._triangular, self.normalization_method, sv_indices)
+                    K_fe = compute_rbf_kernel(self.X_fit, X)
+                    gram_matrix = self.alpha * gram_matrix + (1 - self.alpha) * K_fe
+                X = gram_matrix
+                if self.normalization_method == 'exp':
+                    K_xx_s = np.ones(n_instances)
+                else:
+                    gram_diagonal_test = train_kernel_matrix(X, self._sigma, self._triangular, self.normalization_method)
+                    gram_diagonal_test = np.diagonal(gram_diagonal_test)
+                    K_xx_s = gram_diagonal_test
 
         if dec_vals:
             score = libsvdd.decision_function(
@@ -254,7 +284,7 @@ class SVDD:
         return self
 
     def get_params(self, deep=True):
-        return {"kernel": self.kernel, "nu": self.nu, "C": self.C, "sigma": self.sigma,
+        return {"kernel": self.kernel, "nu": self.nu, "C": self.C, "sigma": self.sigma, "alpha": self.alpha,
                 "triangular": self.triangular, "normalization_method": self.normalization_method}
 
     def decision_function(self, X, K_xx_s=None):
@@ -286,7 +316,7 @@ class SVDD:
                 raise ValueError(f'Invalid parameter `nu={self.nu}`.')
             else:
                 self._C = 1 / (self.nu * n_instances)
-        if self.kernel == 'tga':
+        if self.kernel == 'tga' or self.kernel == 'rbf-gak':
             if self.sigma == 'auto':
                 sigmas = sampled_gak_sigma(self.X_fit, 100)
                 self._sigma = sigmas[3]
@@ -330,7 +360,12 @@ class SVDD:
         Check if X has correct shape for kernel and is c-contiguous.
         """
         if isinstance(X, pd.DataFrame):
-            X = X.values
+            if self.kernel == 'tga':
+                X = np.reshape(X.values, (X.shape[0], X.shape[1], 1), order='C')
+            elif self.kernel == 'gds_dtw':
+                X = np.reshape(X.values, (X.shape[0], X.shape[1]), order='C')
+            elif self.kernel == 'rbf-gak':
+                return X
         if self.kernel == 'tga':
             if X.ndim != 3:
                 raise ValueError("Input array X has wrong shape. Should be 3-tuple (n_instances, n_length, n_dim)")
