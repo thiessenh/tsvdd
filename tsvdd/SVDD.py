@@ -134,7 +134,7 @@ class SVDD:
 
                 K_fe = compute_rbf_kernel(self.X_fit)
 
-                self.train_gram = self.alpha * _X + (1 - self.alpha) * K_fe
+                self.train_gram = self.alpha * _X + ((1 - self.alpha) * K_fe)
 
         # check y
         if y is not None:
@@ -247,14 +247,14 @@ class SVDD:
                 # libsvm starts counting with 1
                 sv_indices = sv_indices - 1
                 # special case when fit and predict data are equal
-                if np.array_equal(self.X_fit, X):
+                if np.array_equal(self.X_fit.values, X.values):
                     gram_matrix = self.train_gram
                 else:
                     X_test = np.reshape(X.values, (X.shape[0], X.shape[1], 1), order='C')
                     X_train = np.reshape(self.X_fit.values, (self.X_fit.shape[0], self.X_fit.shape[1], 1), order='C')
                     gram_matrix = test_kernel_matrix(np.ascontiguousarray(X_train), np.ascontiguousarray(X_test), self._sigma, self._triangular, self.normalization_method, sv_indices)
                     K_fe = compute_rbf_kernel(self.X_fit, X)
-                    gram_matrix = self.alpha * gram_matrix + (1 - self.alpha) * K_fe
+                    gram_matrix = self.alpha * gram_matrix + ((1 - self.alpha) * K_fe)
                 X = gram_matrix
                 if self.normalization_method == 'exp':
                     K_xx_s = np.ones(n_instances)
