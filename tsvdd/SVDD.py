@@ -250,8 +250,7 @@ class SVDD:
                 # special case when fit and predict data are equal
                 if np.array_equal(self.X_fit.values, X.values):
                     gram_matrix = self.train_gram
-                    gram_diagonal = np.diagonal(gram_matrix)
-                    K_xx_s = np.ascontiguousarray(gram_diagonal, dtype=np.float64)
+                    K_xx_s = np.ones(gram_matrix.shape[0], dtype=np.float64, order='C')
                 else:
                     X_test = np.reshape(X.values, (X.shape[0], X.shape[1], 1), order='C')
                     X_train = np.reshape(self.X_fit.values, (self.X_fit.shape[0], self.X_fit.shape[1], 1), order='C')
@@ -259,14 +258,7 @@ class SVDD:
                     K_fe = compute_rbf_kernel(self.X_fit, X)
                     gram_matrix = self.alpha * gram_matrix + ((1 - self.alpha) * K_fe)
 
-                    X_test = np.reshape(X.values, (X.shape[0], X.shape[1], 1), order='C')
-                    ga_diagonal = train_kernel_matrix(np.ascontiguousarray(X_test, dtype=np.float64), self._sigma, self._triangular, self.normalization_method)
-                    ga_diagonal = np.diagonal(ga_diagonal)
-
-                    K_fe = compute_rbf_kernel(X)
-                    K_fe_diagonal = np.diagonal(K_fe)
-                    diagonal = self.alpha * ga_diagonal + ((1 - self.alpha) * K_fe_diagonal)
-                    K_xx_s = np.ascontiguousarray(diagonal, dtype=np.float64)
+                    K_xx_s = np.ones(X_test.shape[0], dtype=np.float64, order='C')
                 X = gram_matrix
 
         if dec_vals:
