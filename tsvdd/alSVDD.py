@@ -1,7 +1,7 @@
 from tsvdd.SVDD import SVDD
 import numpy as np
 import warnings
-from sklearn.metrics import matthews_corrcoef, cohen_kappa_score, balanced_accuracy_score
+from sklearn.metrics import matthews_corrcoef, cohen_kappa_score, balanced_accuracy_score, f1_score
 
 from .query_strategies import query_strategies
 
@@ -17,7 +17,7 @@ class alSVDD(SVDD):
                  coef0=0.0, tol=1e-5, sigma='auto', triangular='auto',
                  normalization_method='exp', shrinking=False, cache_size=200, max_iter=100000,
                  verbose=True, query_strategy='uncertainty_outside',
-                 update_in=10, update_out=0.01, metric='MCC', max_iter_AL=50, start_up_phase=5):
+                 update_in=10, update_out=0.01, metric='MCC', max_iter_AL=50, start_up_phase=5, paper=False):
         """
         @param kernel: Currently only tga supported for active learning.
         @param nu: Expected outlier ratio
@@ -40,8 +40,7 @@ class alSVDD(SVDD):
         @param max_iter_AL: Upper bound for oracle acquisitions
         @param start_up_phase: Minimum number of iterations; Likewise parameter for AEQ and LS
         """
-        super().__init__(kernel=kernel, nu=nu, C=C, degree=degree, gamma=gamma,
-                         coef0=coef0, tol=tol, sigma=sigma, triangular=triangular,
+        super().__init__(kernel=kernel, nu=nu, C=C, tol=tol, sigma=sigma, triangular=triangular,
                          normalization_method=normalization_method, shrinking=shrinking, cache_size=cache_size,
                          max_iter=max_iter, verbose=verbose)
         if query_strategy not in self._query_strategies:
@@ -54,6 +53,7 @@ class alSVDD(SVDD):
         self.update_in = update_in
         self.update_out = update_out
         self.max_iter_AL = max_iter_AL
+        self.paper = paper
 
         # active learning process
         self.radii = list()
@@ -69,11 +69,24 @@ class alSVDD(SVDD):
         # evaluation
         self.qms_on_train = list()
 
+        self.ba_on_train = list()
+        self.ba_ramp_up_on_train = list()
+
+        self.f1_on_train = list()
+        self.f1_ramp_up_on_train = list()
+
+        self.ba_on_annotations = list()
+        self.ba_ramp_up_on_annotations = list()
+
+        self.f1_on_annotations = list()
+        self.f1_ramp_up_on_annotations = list()
+        
+
     def learn(self, X, y):
         """
         Starts active Learning cycle.
         @param X: numpy array containg training data
-        @param y: annotations, server as oracle
+        @param y: annotations, serves as oracle
 
         """
 
@@ -119,6 +132,16 @@ class alSVDD(SVDD):
             # predict
             y_pred = self.predict(X, K_xx_s)
             y_vals = self.decision_function(X, K_xx_s)
+            if self.paper == True:
+                self.ba_on_train.append(balanced_accuracy_score(y, y_pred))
+                self.ba_ramp_up_on_train.append(balanced_accuracy_score(y, y_pred) - self.ba_on_train[0])
+                self.f1_on_train.append(f1_score(y, y_pred))
+                self.f1_ramp_up_on_train.append(f1_score(y, y_pred) - self.f1_on_train[0])
+
+                self.ba_on_annotations.append(balanced_accuracy_score(y[self.L_in + self.L_out], y_pred[self.L_in + self.L_out]))
+                self.ba_ramp_up_on_annotations.append(balanced_accuracy_score(y[self.L_in + self.L_out], y_pred[self.L_in + self.L_out]) - self.ba_on_annotations[0])
+                self.f1_on_annotations.append(f1_score(y[self.L_in + self.L_out], y_pred[self.L_in + self.L_out]))
+                self.f1_ramp_up_on_annotations.append(f1_score(y[self.L_in + self.L_out], y_pred[self.L_in + self.L_out]) - self.f1_on_annotations[0])
             # quality score
             score = self._calc_quality(y, y_pred)
             self.quality_metrics.append(score)
@@ -133,7 +156,7 @@ class alSVDD(SVDD):
             self.LSs.append(learning_stability)
             self._info(f'BA: {balanced_accuracy_score(y, y_pred)}')
             # stop active learning cycle when learning stability reaches zero; but allow start-up phase
-            if learning_stability <= 0 and i not in range(self.start_up_phase + 2): # first iteration does not count.
+            if not self.paper and learning_stability <= 0 and i not in range(self.start_up_phase + 2): # first iteration does not count.
                 break
             # get most informative unknown sample
             idx = QS_function(self.U, self.L_in, self.L_out, y_vals)
