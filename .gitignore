@@ -133,3 +133,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /tsvdd/ga.c
+
+settings.json
+tsvdd/kernels.c

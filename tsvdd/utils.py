@@ -36,7 +36,7 @@ def sampled_gak_sigma(X: np.ndarray, n_samples, random_state: np.random.RandomSt
     Raises
     ------
     NotImplementedError
-        Raised when multivaraiate time series is detected.
+        Raised when multivariate time series is detected.
     """
     if len(X.shape) == 3:
         n_instances, n_length, n_dim = X.shape
@@ -126,7 +126,7 @@ def plot_train_test_pred(X_train, X_test, y_train, y_test, y_pred_train=None, y_
 
 def decision_boundary_train_test(X_train, X_test, y_pred_train, y_pred_test, xx, yy, Z):
     fig, axs = plt.subplots(1, 2, figsize=(10, 6))
-    fig.suptitle('Active learning Data with random cirlce', fontsize=12)
+    fig.suptitle('Active learning Data with random circle', fontsize=12)
 
     axs[0].contourf(xx, yy, Z, levels=np.linspace(Z.min(), 0, 7),
                     cmap=plt.cm.PuBu, zorder=-99)
@@ -223,7 +223,7 @@ def decision_boundary(X, y, xx, yy, Z, title=None, sets=None):
 
 
 def normalize_0_1(data: np.ndarray):
-    """Use with apply(, axis=0) to noramlize a dimension to values in [0,1].
+    """Use with apply(, axis=0) to normalize a dimension to values in [0,1].
 
     Parameters
     ----------
@@ -233,13 +233,13 @@ def normalize_0_1(data: np.ndarray):
     Returns
     -------
     np.ndarray
-        Noramlized data.
+        Normalized data.
     """
     return (data - np.min(data)) / (np.max(data) - np.min(data))
 
 
 def rbf_kernel_fast(X: np.ndarray, sigma: float) -> np.ndarray:
-    """Fast implementation to compute the RBF kernel. To set the numer of threads, use env varaible OPENBLAS_NUM_THREADS.
+    """Fast implementation to compute the RBF kernel. To set the numer of threads, use env variable OPENBLAS_NUM_THREADS.
     Inspired by https://stackoverflow.com/questions/47271662/what-is-the-fastest-way-to-compute-an-rbf-kernel-in-python.
 
     Parameters
@@ -247,7 +247,7 @@ def rbf_kernel_fast(X: np.ndarray, sigma: float) -> np.ndarray:
     X : np.ndarray
         Array with the shape (n_instances, n_dimensions)
     sigma : float
-        RBF's bandwith value.
+        RBF's bandwidth value.
 
     Returns
     -------
@@ -264,7 +264,7 @@ def rbf_kernel_fast(X: np.ndarray, sigma: float) -> np.ndarray:
 
 
 def rbf_kernel_fast_test(X_test: np.ndarray, sigma: float, X_train: np.ndarray) -> np.ndarray:
-    """Fast implementation to compute the RBF kernel for prediction. To set the numer of threads, use env varaible OPENBLAS_NUM_THREADS.
+    """Fast implementation to compute the RBF kernel for prediction. To set the number of threads, use env variable OPENBLAS_NUM_THREADS.
     Inspired by https://stackoverflow.com/questions/47271662/what-is-the-fastest-way-to-compute-an-rbf-kernel-in-python.
 
     Parameters
@@ -319,9 +319,9 @@ def compute_rbf_kernel(X: DataFrame, X_test: DataFrame = None) -> np.ndarray:
         ["id", "time"]).reset_index(drop=True)
     X_features = extract_features(X, default_fc_parameters=rbf_gak_features,
                                   column_id="id", column_sort="time", impute_function=impute)
-    print(X_features.columns)
     X_features = X_features.apply(normalize_0_1, axis=0).fillna(0)
     X_features = X_features.values
+
 
 
     if X_test is not None:
@@ -345,7 +345,6 @@ def compute_rbf_kernel(X: DataFrame, X_test: DataFrame = None) -> np.ndarray:
         for train in X_features.T:
             f_sigma = (n_instances ** (-1 / (1 + 4))) * \
                 np.std(train.reshape((-1, 1)))
-            print(f_sigma)
             K_s.append(rbf_kernel_fast(train.reshape((-1, 1)), f_sigma))
 
     K_s = np.stack(K_s)

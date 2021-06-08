@@ -299,7 +299,7 @@ class SVDD:
     def _check_arguments(self):
         """
         Check if C is valid. If \nu is set, calculate C from \nu.
-        If sigma=`auto` or traingular=`auto`, calculate accordingly.
+        If sigma=`auto` or triangular=`auto`, calculate accordingly.
         """
         n_instances = self.fit_shape[0]
         n_length = self.fit_shape[1]
