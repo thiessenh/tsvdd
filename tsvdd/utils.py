@@ -258,6 +258,8 @@ def compute_rbf_kernel(X, X_test=None):
    {'f_agg': 'var', 'isabs': True, 'qh': 0.8, 'ql': 0.6}],
   'max_langevin_fixed_point': [{'m': 3, 'r': 30}]}
 
+    n_instances = X.shape[0]
+
     X["id"] = X.index
     X = X.melt(id_vars="id", var_name="time").sort_values(["id", "time"]).reset_index(drop=True)
     X_features = extract_features(X, default_fc_parameters=rbf_gak_features, column_id="id", column_sort="time", impute_function=impute) 
@@ -274,11 +276,11 @@ def compute_rbf_kernel(X, X_test=None):
     K_s = []
     if X_test is not None:
          for train, test in zip(X_features.T, X_test_features.T):
-            f_sigma = X.shape[0] ** (-1 / (1 + 4)) #* np.std(train.reshape((-1,1)))
+            f_sigma = n_instances ** (-1 / (1 + 4)) #* np.std(train.reshape((-1,1)))
             K_s.append(rbf_kernel_fast_test(test.reshape((-1,1)), f_sigma, train.reshape((-1,1))))
     else:
         for train in X_features.T:
-            f_sigma = X.shape[0] ** (-1 / (1 + 4)) #* np.std(train.reshape((-1,1)))
+            f_sigma = n_instances ** (-1 / (1 + 4)) #* np.std(train.reshape((-1,1)))
             K_s.append(rbf_kernel_fast(train.reshape((-1,1)), f_sigma))
 
     K_s = np.stack(K_s)
