@@ -81,7 +81,8 @@ class SVDD:
         self.alpha = alpha
 
     def __str__(self):
-        attributes = list(map(lambda kv : f'"{kv[0]}"={kv[1]},', self.get_params().items()))
+        attributes = list(
+            map(lambda kv: f'"{kv[0]}"={kv[1]},', self.get_params().items()))
         return "SVDD(" + ''.join(attributes)[:-1] + ")"
 
     def fit(self, X, y=None, W=None):
@@ -126,16 +127,13 @@ class SVDD:
             # check if valid arguments
             self._check_arguments()
         else:
-            self.fit_shape = X.shape
             # check if input data are valid for kernel computation
             X = self._check_input_array(X)
+            self.fit_shape = X.shape
             self.X_fit = X
             # check if valid arguments
             self._check_arguments()
-            if self.X_fit.ndim == 3:
-                n_instances, n_length, n_dim = self.X_fit.shape
-            elif self.X_fit.ndim == 2:
-                n_instances, n_length = self.X_fit.shape
+            n_instances = self.X_fit.shape[0]
 
             # start computing kernels
             if self.kernel == 'tga':
@@ -231,7 +229,7 @@ class SVDD:
         AttributeError
             When fit() is not called before predict().
         """
-        
+
         # fit before precit
         if not self.is_fit:
             raise AttributeError('SVDD not fitted.')
@@ -349,7 +347,7 @@ class SVDD:
     def decision_function(self, X, K_xx_s=None):
         """Calls predict() with dec_values=`True`. See predict() doc string.
         """
-   
+
         p_val = self.predict(X, K_xx_s, dec_vals=True)
         return p_val
 
@@ -358,8 +356,8 @@ class SVDD:
 
         Parameters
         ----------
-        line : [type]
-            [description]
+        line : str
+            Message to output.
         """
         if self.verbose:
             print(line)
@@ -436,18 +434,21 @@ class SVDD:
                 X = np.reshape(X.values, (X.shape[0], X.shape[1]), order='C')
             elif self.kernel == 'rbf-gak':
                 return X
-        if self.kernel == 'tga':
-            if X.ndim != 3:
-                raise ValueError(
-                    "Input array X has wrong shape. Should be 3-tuple (n_instances, n_length, n_dim)")
-        if self.kernel == 'RBF':
-            if X.ndim != 2:
-                raise ValueError(
-                    "Input array X has wrong shape. Should be 2-tuple (n_instances, n_length)")
-        if self.kernel == 'gds-dtw':
-            if X.ndim != 2:
-                raise ValueError(
-                    "Input array X has wrong shape. Should be 2-tuple (n_instances, n_length)")
+        elif isinstance(X, np.ndarray):
+            if self.kernel == 'tga':
+                if X.ndim == 2:
+                    X = np.reshape(
+                        X.values, (X.shape[0], X.shape[1], 1), order='C')
+            if self.kernel in ["gds-dtw", "rbf"]:
+                if X.ndim != 2:
+                    raise ValueError(
+                        "Input array X has wrong shape. Should be 2-tuple (n_instances, n_length)")
+            if self.kernel == 'rbf-gak':
+                if X.ndim != 2:
+                    raise ValueError(
+                        "Input array X has wrong shape. Should be 2-tuple (n_instances, n_length)")
+                else:
+                    return pd.DataFrame(X)
         if not X.flags['C_CONTIGUOUS']:
             X = np.ascontiguousarray(X, dtype=np.float64)
 

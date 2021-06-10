@@ -227,28 +227,6 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
     return np.exp(-res)
 
 
-# def diagonal_gram_matrix(np.ndarray[np.double_t,ndim=3] seq, double sigma, int triangular, str normalization_method):
-#     cdef int nInstances = seq.shape[0]
-#     cdef int nLength = seq.shape[1]
-#     cdef int nDim = seq.shape[2]
-#
-#     # check preconditions
-#     assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
-#     assert triangular >= 0, "Invalid triangular parameter (%f)" % triangular
-#     assert seq.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
-#     assert normalization_method in ['exp'], f'normalization_method=`{normalization_method}` is not a valid argument.'
-#
-#     # define matrix for diagonal kernel values
-#     cdef np.ndarray[np.double_t, ndim=1] res = np.zeros([nInstances], order='C')
-#
-#     if normalization_method == 'exp':
-#         diagonalGramMatrixExp(<double*> seq.data, <int> nInstances, <int> nLength, <int> nDim, <double*> res.data, <double> sigma,
-#                               <int> triangular)
-#     else:
-#         raise ValueError(f'normalization_method=`{normalization_method}` is not a valid argument.')
-#     return res
-
-
 def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
     """
     RBF Kernel with DTW as distance substitute.
