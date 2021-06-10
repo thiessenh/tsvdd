@@ -226,20 +226,15 @@ class alSVDD(SVDD):
 
         Parameters
         ----------
-        y_true : array-based
+        y_true : array_like
             [description]
-        y_pred : array-based
+        y_pred : array_like
             [description]
 
         Returns
         -------
-        [type]
-            [description]
-
-        Raises
-        ------
-        ValueError
-            [description]
+        float
+            The respective quality score.
         """
         if self.metric == 'MCC':
             annotated_indices = self.L_in + self.L_out
@@ -255,12 +250,21 @@ class alSVDD(SVDD):
         raise ValueError(f'Metric {self.metric} is not supported.')
 
     def _calc_AEQ(self, iteration, k):
-        """
-         Median average end quality (AEQ), the average quality over the last k iterations
+        """Median average end quality (AEQ), the average quality over the last k iterations.
+
         AEQ(k) = \frac{1}{k}\sum_{i=1}^k QM(t_{end-k})
-        @param iteration: Current iteration
-        @param k: Average Quality Metric over k iterations
-        @return:
+
+        Parameters
+        ----------
+        iteration : int
+            Current iteration.
+        k : int
+            The amount of past quality metrics to consider.
+
+        Returns
+        -------
+        float
+            The AEQ.
         """
         # iteration might be smaller than k
         k_ = min(iteration, k)
@@ -273,22 +277,25 @@ class alSVDD(SVDD):
             return AEQ / k_
 
     def _calc_LS(self, iteration, k):
-        """
-        Learning Stability describes the influence of the last k iterations.
+        """Learning Stability describes the influence of the last k iterations.
         High LS indicates improvement with further iterations.
         Low LS indicates that classifier might be saturated.
-        \begin{equation}
-            L S(k)=\left\{\begin{array}{ll}
-            \frac{Q R(\text { end }-k, \text { end })}{k} / \frac{Q R(\text { init,end })}{\mid \mathcal{L}^{\text {end }} \backslash \mathcal{L}^{\text {init }\mid}} & \text { if } Q R(\text { init, end })>0 \\0 & \text { otherwise. }
-            \end{array}\right.
-        \end{equation}
+     
+            L S(k)=\\left\\{\\begin{array}{ll}
+            \\frac{Q R(\\text { end }-k, \\text { end })}{k} / \\frac{Q R(\\text { init,end })}{\mid \\mathcal{L}^{\\text {end }} \\backslash \\mathcal{L}^{\\text {init }\\mid}} & \\text { if } Q R(\\text { init, end })>0 \\0 & \\text { otherwise. }
+            \\end{array}\\right.
 
-        Note: \mid \mathcal{L}^{\text {end }} \backslash \mathcal{L}^{\text {init }\mid equals iteration. Because initial pool is empty.
-        @param iteration: Current iteration
-        @param k: Specifies the range to consider for Learning Stability
-        @return:
+        Parameters
+        ----------
+        iteration : int
+            Current iteration.
+        k : int
+            The amount of past quality metrics to consider.
+        Returns
+        -------
+        float
+            The LS.
         """
-
         def QR(start, end):
             """
             Quality Range from start to end
