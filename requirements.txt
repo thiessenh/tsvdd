@@ -3,4 +3,5 @@ numpy
 scikit-learn
 setuptools
 Cython
-dtaidistance==2.1.2
+dtaidistance==2.1.2 # C-implementation didn't work for lastest version
+tsfresh
