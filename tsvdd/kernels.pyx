@@ -1,14 +1,3 @@
-"""
-Wrapper around the Global Alignment kernel code from M. Cuturi
-
-Original code: http://www.iip.ist.i.kyoto-u.ac.jp/member/cuturi/GA.html
-
-Written by Adrien Gaidon - INRIA - 2011
-http://lear.inrialpes.fr/people/gaidon/
-
-LICENSE: cf. logGAK.c
-"""
-
 from dtaidistance import dtw
 import numpy as np
 cimport numpy as np
@@ -21,6 +10,14 @@ cdef extern from "matrixLogGAK.h" nogil:
     void testGramMatrixExp(double *train, double *test, int nInstances_train, int nInstances_test, int nLength_train, int nLength_test, int nDim, double *res, double sigma, int triangular, signed long *sv_indices, signed long sv_size)
 
 def tga_dissimilarity(np.ndarray[np.double_t,ndim=2] seq1, np.ndarray[np.double_t,ndim=2] seq2, double sigma, int triangular):
+    # Wrapper around the Global Alignment kernel code from M. Cuturi
+
+    # Original code: http://www.iip.ist.i.kyoto-u.ac.jp/member/cuturi/GA.html
+
+    # Written by Adrien Gaidon - INRIA - 2011
+    # http://lear.inrialpes.fr/people/gaidon/
+
+    # LICENSE: cf. logGAK.c
     """ Compute the Triangular Global Alignment (TGA) dissimilarity score
 
     What is computed is minus the log of the normalized global alignment kernel
@@ -70,50 +67,6 @@ def tga_dissimilarity(np.ndarray[np.double_t,ndim=2] seq1, np.ndarray[np.double_
     mlnk = nf - ga12
     return mlnk
 
-
-def tga_similarity(np.ndarray[np.double_t,ndim=2] seq1, np.ndarray[np.double_t,ndim=2] seq2, double sigma, int triangular):
-    """ Compute the Triangular Global Alignment (TGA) similarity score
-
-    What is computed is the global alignment kernel evaluation between the two time series,
-    in order to use precomputed kernel. The greater the more similar.
-
-    PARAMETERS:
-      seq1: T1 x d multivariate (dimension d) time series of duration T1
-        two-dimensional C-contiguous (ie. read line by line) numpy array of doubles,
-
-      seq2: T2 x d multivariate (dimension d) time series of duration T2
-
-      sigma: double, bandwitdh of the inner distance kernel
-        good practice: {0.1, 0.5, 1, 2, 5, 10} * median(dist(x, y)) * sqrt(median(length(x)))
-
-      triangular: int, parameter to restrict the paths (closer to the diagonal) used by the kernel
-        good practice: {0.25, 0.5} * median(length(x))
-        Notes:
-          * 0: use all paths
-          * 1: measuring alignment of (same duration) series, ie
-            kernel value is 0 for different durations
-          * higher = more restricted thus faster
-          * kernel value is also 0 for series with difference in duration > triangular-1
-
-    RETURN:
-      mlnk: double,
-        minus the normalized log-kernel
-        (logGAK(seq1,seq1)+logGAK(seq2,seq2))/2 - logGAK(seq1,seq2)
-
-    """
-    T1 = seq1.shape[0]
-    T2 = seq2.shape[0]
-    d  = seq1.shape[1]
-    _d = seq2.shape[1]
-    # check preconditions
-    assert d == _d, "Invalid series: dimension mismatch (%d != %d)" % (d, _d)
-    assert seq1.flags['C_CONTIGUOUS'] and seq2.flags['C_CONTIGUOUS'], "Invalid series: not C-contiguous"
-    assert sigma > 0, "Invalid bandwidth sigma (%f)" % sigma
-    assert triangular >= 0, "Invalid triangular parameter (%f)" % triangular
-    # compute the global alignment kernel value
-    ga12 = logGAK(<double*> seq1.data, <double*> seq2.data, <int> T1, <int> T2, <int> d, sigma, triangular)
-    return ga12
-
 def train_kernel_matrix(np.ndarray[np.double_t,ndim=3] seq, double sigma, int triangular, str normalization_method):
     """ Compute the Triangular Global Alignment (TGA) similarity score
 
@@ -124,7 +77,6 @@ def train_kernel_matrix(np.ndarray[np.double_t,ndim=3] seq, double sigma, int tr
       seq: T1 x d multivariate (dimension d) time series of duration T1
         two-dimensional C-contiguous (ie. read line by line) numpy array of doubles,
 
-
       sigma: double, bandwitdh of the inner distance kernel
         good practice: {0.1, 0.5, 1, 2, 5, 10} * median(dist(x, y)) * sqrt(median(length(x)))
 
@@ -134,14 +86,14 @@ def train_kernel_matrix(np.ndarray[np.double_t,ndim=3] seq, double sigma, int tr
           * 0: use all paths
           * 1: measuring alignment of (same duration) series, ie
             kernel value is 0 for different durations
-          * higher = more restricted thus faster
+          * higher = less restricted thus behaves more like GA kernel
           * kernel value is also 0 for series with difference in duration > triangular-1
 
     RETURN:
-      mlnk: double,
-        minus the normalized log-kernel
+      ndarray,
+        Minus the normalized log-kernel
         (logGAK(seq1,seq1)+logGAK(seq2,seq2))/2 - logGAK(seq1,seq2)
-        @param normalization_method: 'exp'
+        @param normalization_method: 'exp'.
 
     """
     # get data dimensions
@@ -186,15 +138,16 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
           * 0: use all paths
           * 1: measuring alignment of (same duration) series, ie
             kernel value is 0 for different durations
-          * higher = more restricted thus faster
+          * higher = less restricted thus behaves more like GA kernel
           * kernel value is also 0 for series with difference in duration > triangular-1
 
-      sv_indices: Indices starting at 0.
+      sv_indices: array-like int
+        Indices starting at 0.
 
     RETURN:
-      mlnk: double,
-        minus the normalized log-kernel
-        (logGAK(seq1,seq1)+logGAK(seq2,seq2))/2 - logGAK(seq1,seq2)
+      ndarray
+      Minus the normalized log-kernel
+        (logGAK(seq1,seq1)+logGAK(seq2,seq2))/2 - logGAK(seq1,seq2).
 
     """
     # get data dimensions
@@ -228,10 +181,19 @@ def test_kernel_matrix(np.ndarray[np.double_t, ndim=3] train, np.ndarray[np.doub
 
 
 def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
-    """
-    RBF Kernel with DTW as distance substitute.
-    @param seq:
-    @return:
+    """ Compute the Gram matrix for the RBF kernel with DTW as distance substitute.
+
+    PARAMETERS:
+      seq: ndarray
+        Two-dimensional C-contiguous (ie. read line by line) numpy array of doubles of shape (n_instances, time_series_length).
+
+      sigma: double
+        Bandwitdh of the RBF kernel. Experiments showed, that the Rule of Cuturi served well as Rule of Thumb.
+
+    RETURN:
+      ndarray
+        Gram matrix of the RBF kernel with DTW as distance substitute.
+
     """
     # get data dimensions
     cdef int n_instances = seq.shape[0]
@@ -254,12 +216,22 @@ def train_gds_dtw(np.ndarray[np.double_t,ndim=2] seq, double sigma):
 
 
 def test_gds_dtw(np.ndarray[np.double_t,ndim=2] train, np.ndarray[np.double_t,ndim=2] test, double sigma):
-    """
-    RBF Kernel with DTW as distance substitute.
-    @param train: data from fit
-    @param test: prediction data
-    @param sigma: sigma, determine with, e.g., Rule of Cuturi
-    @return:
+    """ Compute the prediction kernel matrix for the RBF kernel with DTW as distance substitute.
+
+    PARAMETERS:
+      train: ndarray
+        Two-dimensional C-contiguous (ie. read line by line) numpy array of doubles of shape (n_train, time_series_length).
+
+      test: ndarray
+        Two-dimensional C-contiguous (ie. read line by line) numpy array of doubles of shape (n_test, time_series_length).
+
+      sigma: double
+        Bandwitdh of the RBF kernel. Experiments showed, that the Rule of Cuturi served well as Rule of Thumb.
+
+    RETURN:
+      ndarray
+        Kernel matrix of the RBF kernel with DTW as distance substitute of shape (n_test, n_train)
+
     """
     # get data dimensions
     cdef int n_instances_train = train.shape[0]
