@@ -438,7 +438,7 @@ class SVDD:
             if self.kernel == 'tga':
                 if X.ndim == 2:
                     X = np.reshape(
-                        X.values, (X.shape[0], X.shape[1], 1), order='C')
+                        X, (X.shape[0], X.shape[1], 1), order='C')
             if self.kernel in ["gds-dtw", "rbf"]:
                 if X.ndim != 2:
                     raise ValueError(
