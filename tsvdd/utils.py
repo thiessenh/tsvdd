@@ -318,7 +318,7 @@ def compute_rbf_kernel(X: DataFrame, X_test: DataFrame = None) -> np.ndarray:
     X = X.melt(id_vars="id", var_name="time").sort_values(
         ["id", "time"]).reset_index(drop=True)
     X_features = extract_features(X, default_fc_parameters=rbf_gak_features,
-                                  column_id="id", column_sort="time", impute_function=impute)
+                                  column_id="id", column_sort="time", impute_function=impute, disable_progressbar=True)
     X_features = X_features.apply(normalize_0_1, axis=0).fillna(0)
     X_features = X_features.values
 
@@ -329,7 +329,7 @@ def compute_rbf_kernel(X: DataFrame, X_test: DataFrame = None) -> np.ndarray:
         X_test = X_test.melt(id_vars="id", var_name="time").sort_values(
             ["id", "time"]).reset_index(drop=True)
         X_test_features = extract_features(
-            X_test, default_fc_parameters=rbf_gak_features, column_id="id", column_sort="time", impute_function=impute)
+            X_test, default_fc_parameters=rbf_gak_features, column_id="id", column_sort="time", impute_function=impute, disable_progressbar=True)
         X_test_features = X_test_features.apply(
             normalize_0_1, axis=0).fillna(0)
         X_test_features = X_test_features.values
