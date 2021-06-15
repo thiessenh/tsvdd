@@ -4,6 +4,7 @@ from sklearn.datasets import make_circles
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.model_selection import train_test_split
 import pytest
+import pandas as pd
 
 
 class TestSVDD:
@@ -70,33 +71,30 @@ class TestSVDD:
 
         assert not (count_test > 1 or count_train > 1)
 
+    def test_some_instantiations(self):
+        rng = np.random.default_rng(42)
+        X_2d = rng.random((20, 100))
+        X_3d = rng.random((20, 100, 1))
+        
+        svdd = SVDD(kernel='tga', nu=0.05, sigma=1)
+        svdd.fit(X_2d)
+        svdd.fit(X_3d)
 
-    @pytest.mark.parametrize("n_train", [10, 30, 50])
-    @pytest.mark.parametrize("length_train", [5, 10, 15])
-    @pytest.mark.parametrize("n_test", [10, 30, 50])
-    @pytest.mark.parametrize("length_test", [5, 10, 15])
-    @pytest.mark.parametrize("dim", [1])
-    def test_sv_svdd(self, n_train, length_train, dim):
-        rs = np.random.RandomState(1234)
-        c_train_matrix = rs.rand(n_train, length_train, dim).astype(dtype=np.float64, order='c')
-        c_test_matrix = c_train_matrix + 20
+        svdd = SVDD(kernel='gds-dtw', nu=0.05, sigma=1)
+        svdd.fit(X_2d)
 
-        train = np.concatenate([c_train_matrix, c_test_matrix])
-        y_train = np.concatenate([np.ones(n_train), -1*np.ones(n_train)])
+        svdd = SVDD(kernel='rbf-gak', nu=0.05, sigma=1)
+        svdd.fit(X_2d)
 
-        svdd = SVDD('tga', nu=0.5, tol=1e-16)
-        svdd.fit(train)
-        y_pred_train = svdd.predict(train)
+        X_2d = pd.DataFrame(X_2d)
 
-        y_pred_train = np.array(y_pred_train)
+        svdd = SVDD(kernel='tga', nu=0.05, sigma=1)
+        svdd.fit(X_2d)
 
-        count_train =0
-        count_test = 0
-        for i in range(y_pred_train.shape[0]):
-            if y_pred_train[i] != y_train[i]:
-                count_train += 1
+        svdd = SVDD(kernel='gds-dtw', nu=0.05, sigma=1)
 
-        assert not (count_train > 0)
+        svdd = SVDD(kernel='rbf-gak', nu=0.05, sigma=1)
+        svdd.fit(X_2d)
 
 
 
