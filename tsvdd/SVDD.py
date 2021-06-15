@@ -110,8 +110,6 @@ class SVDD:
         if self.tol < 10e-7 and self.verbose:
             warnings.warn(
                 f'Small tolerance = {self.tol} might result in long training times.', Warning)
-        if self.kernel == 'rbf-gak' and not isinstance(X, pd.DataFrame):
-            raise ValueError('X needs to be DataFrame.')
 
         # distinguish between precomputed and built-in kernels
         if self.kernel == 'precomputed':
@@ -160,9 +158,6 @@ class SVDD:
 
                 self.train_gram = self.alpha * _X + ((1 - self.alpha) * K_fe)
 
-        # check y
-        if y is not None:
-            raise NotImplementedError('Y not yet implemented')
         y = np.ones(n_instances, dtype=np.float64)
 
         # check W
@@ -439,11 +434,11 @@ class SVDD:
                 if X.ndim == 2:
                     X = np.reshape(
                         X, (X.shape[0], X.shape[1], 1), order='C')
-            if self.kernel in ["gds-dtw", "rbf"]:
+            elif self.kernel in ["gds-dtw", "rbf"]:
                 if X.ndim != 2:
                     raise ValueError(
                         "Input array X has wrong shape. Should be 2-tuple (n_instances, n_length)")
-            if self.kernel == 'rbf-gak':
+            elif self.kernel == 'rbf-gak':
                 if X.ndim != 2:
                     raise ValueError(
                         "Input array X has wrong shape. Should be 2-tuple (n_instances, n_length)")
@@ -451,5 +446,4 @@ class SVDD:
                     return pd.DataFrame(X)
         if not X.flags['C_CONTIGUOUS']:
             X = np.ascontiguousarray(X, dtype=np.float64)
-
         return X
