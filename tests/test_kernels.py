@@ -84,9 +84,9 @@ class TestKernels:
     @pytest.mark.parametrize("sv_indices", ['all', 'random'])
     def test_predict_matrix(self, n_train, length_train, n_test, length_test, dim, sv_indices):
         rs = np.random.RandomState(1234)
-        if sv_indices is 'all':
+        if sv_indices == 'all':
             indices = np.arange(n_train, dtype=np.int64)
-        elif sv_indices is 'random':
+        elif sv_indices == 'random':
             indices = rs.randint(low=0, high=n_train, size=int(n_train/2))
 
         c_train_matrix = rs.rand(n_train, length_train, dim).astype(dtype=np.float64, order='c')

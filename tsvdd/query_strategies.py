@@ -66,8 +66,8 @@ def get_QS(query_strategy):
         Query Strategy
 
     """
-    if query_strategy is "uncertainty_outside":
+    if query_strategy == "uncertainty_outside":
         return _uncertainty_outside
-    if query_strategy is "random_outlier":
+    if query_strategy == "random_outlier":
         return _random_outlier
     raise ValueError(f"Invalid query strategy: `{query_strategy}`.")
