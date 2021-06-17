@@ -1,24 +1,27 @@
-# t(s)svdd package
+# t(s)SVDD package
+_A Python package for SVDD with time series kernels._
 
-## TSSVDD and AL-TSSVDD
-#### Time-Series Support Vector Data Description and Active Leanring Time-Series Support Vector Data Description
-**t(s)svdd is a Python module for outlier detection in time-series.**
+[![][docs-master-img]][docs-master-url]
 
-### Installation
-#### Dependencies
+This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classification) suitable for time series anomaly detection. The package was developed as part of my master's thesis _“Detecting Outlying Time Series with Global Alignment Kernels”_.
 
-tsvdd requires :
+## Installation
+```shell
+	pip install git+https://github.com/thiessenh/tsvdd.git@main
+```
+## Dependencies
 
 - Python >=3.6
-- Numpy >=1.20
-- dtaidistance >=2.2.5
-
-#### pip install
-```shell
-	pip install -U https://github.com/thiessenh/tsvdd
-```
-
-### Acknowledgements
+- pandas
+- numpy 
+- dtaidistance
+- tsfresh
+- sklearn
+## Acknowledgements
 - [LIBSVM](https://www.csie.ntu.edu.tw/~cjlin/libsvm/)
 - [Triangular Global Alignment Kernels](https://marcocuturi.net/GA.html)
 - [scikit-learn](https://scikit-learn.org/)
+
+
+[docs-img]: https://img.shields.io/badge/docs-master-blue.svg
+[docs-url]: https://thiessenh.github.io/tsvdd/
