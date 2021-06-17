@@ -1,9 +1,9 @@
-# t(s)SVDD package
-_A Python package for SVDD with time series kernels._
+# t(s)SVDD
+_A Python package for SVDD with time-series kernels._
 
 [![][docs-img]][docs-url]
 
-This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classification) suitable for time series anomaly detection. The package was developed as part of my master's thesis _“Detecting Outlying Time Series with Global Alignment Kernels”_.
+This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classification) suitable for time-series anomaly detection. The package was developed as part of my master's thesis _“Detecting Outlying Time Series with Global Alignment Kernels”_.
 
 ## Installation
 ```bash
