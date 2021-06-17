@@ -1,7 +1,7 @@
 # t(s)SVDD
 _A Python package for SVDD with time-series kernels._
 
-[![][docs-img]][docs-url]
+[![][docs-img]][docs-url][![Python package](https://github.com/thiessenh/tsvdd/actions/workflows/python-package.yml/badge.svg?branch=main)](https://github.com/thiessenh/tsvdd/actions/workflows/python-package.yml)
 
 This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classification) suitable for time-series anomaly detection. The package was developed as part of my master's thesis _“Detecting Outlying Time Series with Global Alignment Kernels”_.
 
