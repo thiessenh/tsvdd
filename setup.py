@@ -2,10 +2,11 @@ from setuptools import setup
 import setuptools.extension
 from Cython.Build import cythonize
 import numpy
+import os
 
-# ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
-# with open("README.md", "r", encoding="utf-8") as fh:
-#    long_description = fh.read()
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+with open("README.md", "r", encoding="utf-8") as fh:
+   long_description = fh.read()
 
 kernels = setuptools.extension.Extension(
     "tsvdd.kernels",
@@ -29,13 +30,13 @@ setup(
     author_email="haikothiessen@gmail.com",
     url="https://github.com/thiessenh/tsvdd",
     license='Apache 2.0',
-    long_description='TODO',
+    long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache 2.0",
         "Operating System :: OS Independent",],
-    description= 'SVDD for time-series data based on libsvm.',
+    description= 'SVDD for time series data based on libsvm.',
     extras_require={
         'dev': [
             'pytest',

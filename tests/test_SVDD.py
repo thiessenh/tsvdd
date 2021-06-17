@@ -1,4 +1,4 @@
-from tsvdd.SVDD import SVDD
+from tsvdd import SVDD
 import numpy as np
 from sklearn.datasets import make_circles
 from sklearn.metrics.pairwise import rbf_kernel
