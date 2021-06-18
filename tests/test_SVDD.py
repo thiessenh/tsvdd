@@ -22,19 +22,14 @@ class TestSVDD:
         gram_test = np.dot(X_test_noise, X_train_clean.T)
         gram_diagonal_test = np.diagonal(np.dot(X_test_noise, X_test_noise.T))
 
-
-        svdd = SVDD('precomputed', C=1, tol=10e-16)
+        svdd = SVDD('precomputed', C=1, tol=1e-18)
         svdd.fit(gram_train)
         y_pred_test = svdd.predict(gram_test, gram_diagonal_test)
         y_pred_test = np.array(y_pred_test)
 
-        count_test = 0
+        false_test =  np.sum(y_pred_test != y_test[outer_test])
 
-        for i in range(y_pred_test.shape[0]):
-            if y_pred_test[i] != y_test[outer_test][i]:
-                count_test += 1
-
-        assert not count_test > 1
+        assert not false_test > 1
 
     @pytest.mark.parametrize("n_samples", [200, 500])
     def test_svdd(self, n_samples):
@@ -46,30 +41,22 @@ class TestSVDD:
         outer_test = y_test == -1
         X_test_noise = X_test[outer_test]
 
-
         gram_train = rbf_kernel(X_train, X_train)
         gram_test = rbf_kernel(X_test_noise, X_train)
-        gram_diagonal_test = np.diagonal(rbf_kernel(X_test_noise, X_test_noise))
-        gram_diagonal_train = np.diagonal(gram_train)
+        gram_diagonal_test = np.ones(X_test_noise.shape[0])
+        gram_diagonal_train = np.ones(gram_train.shape[0])
 
-        svdd = SVDD('precomputed', nu=outlier_ratio_train, tol=10e-16)
+        svdd = SVDD('precomputed', nu=outlier_ratio_train, tol=1e-18)
         svdd.fit(gram_train)
         y_pred_train = svdd.predict(gram_train, gram_diagonal_train)
         y_pred_test = svdd.predict(gram_test, gram_diagonal_test)
         y_pred_test = np.array(y_pred_test)
         y_pred_train = np.array(y_pred_train)
 
-        count_train = 0
-        count_test = 0
-        for i in range(y_pred_train.shape[0]):
-            if y_pred_train[i] != y_train[i]:
-                count_train += 1
+        false_train =  np.sum(y_pred_train != y_train)
+        false_test =  np.sum(y_pred_test != y_test[outer_test])
 
-        for i in range(y_pred_test.shape[0]):
-            if y_pred_test[i] != y_test[outer_test][i]:
-                count_test += 1
-
-        assert not (count_test > 1 or count_train > 1)
+        assert not (false_test > 1 or false_train > 1)
 
     def test_some_instantiations(self):
         rng = np.random.default_rng(42)
@@ -95,7 +82,3 @@ class TestSVDD:
 
         svdd = SVDD(kernel='rbf-gak', nu=0.05, sigma=1)
         svdd.fit(X_2d)
-
-
-
-
