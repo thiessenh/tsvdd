@@ -5,9 +5,16 @@ _A Python package for SVDD with time-series kernels._
 
 This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classification) suitable for time-series anomaly detection. The package was developed as part of my master's thesis _“Detecting Outlying Time Series with Global Alignment Kernels”_.
 
-## Installation
+## Getting started
+### Installation
 ```bash
 	pip install git+https://github.com/thiessenh/tsvdd.git@main
+```
+### Usage
+```python
+svdd = SVDD(nu=0.05, sigma='auto') # set C according to 5% outlier, determine \sigma automatically with heuristic
+svdd.fit(X) # train SVDD
+y_pred = svdd.predict(X) # predict, a -1 label indicates outliers
 ```
 ## Overview
 To tackle the challenging problem of outlier detection of time series data, we propose the combination of SVDD and TGAK as kernel function.
