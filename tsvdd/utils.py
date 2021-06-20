@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numexpr as ne
 from tsfresh import extract_features
 from tsfresh.utilities.dataframe_functions import impute
-from pandas import DataFrame
 
 rbf_gak_features = {'agg_linear_trend': [{'attr': 'stderr', 'chunk_len': 5, 'f_agg': 'min'},
                                          {'attr': 'rvalue', 'chunk_len': 10,
@@ -13,7 +12,7 @@ rbf_gak_features = {'agg_linear_trend': [{'attr': 'stderr', 'chunk_len': 5, 'f_a
                                          {'f_agg': 'mean', 'isabs': True, 'qh': 1.0, 'ql': 0.4}]}
 
 
-def sampled_gak_sigma(X: np.ndarray, n_samples, random_state: np.random.RandomState = None, multipliers=None):
+def sampled_gak_sigma(X, n_samples, random_state = None, multipliers=None):
     """Estimate optimal sigma according to Cuturi's Rule. When `multipliers` is specified, sigma multiples are returned.
     Otherwise, multiples in [0.1, 1, 2, 5, 10] are returned.
 
@@ -38,6 +37,8 @@ def sampled_gak_sigma(X: np.ndarray, n_samples, random_state: np.random.RandomSt
     NotImplementedError
         Raised when multivariate time series is detected.
     """
+    if type(X).__name__ == 'DataFrame':
+        X = X.values
     if len(X.shape) == 3:
         n_instances, n_length, n_dim = X.shape
         if n_dim == 1:
@@ -222,7 +223,7 @@ def decision_boundary(X, y, xx, yy, Z, title=None, sets=None):
     plt.show()
 
 
-def normalize_0_1(data: np.ndarray):
+def normalize_0_1(data):
     """Use with apply(, axis=0) to normalize a dimension to values in [0,1].
 
     Parameters
@@ -238,7 +239,7 @@ def normalize_0_1(data: np.ndarray):
     return (data - np.min(data)) / (np.max(data) - np.min(data))
 
 
-def rbf_kernel_fast(X: np.ndarray, sigma: float) -> np.ndarray:
+def rbf_kernel_fast(X, sigma):
     """Fast implementation to compute the RBF kernel. To set the numer of threads, use env variable OPENBLAS_NUM_THREADS.
     Inspired by https://stackoverflow.com/questions/47271662/what-is-the-fastest-way-to-compute-an-rbf-kernel-in-python.
 
@@ -263,7 +264,7 @@ def rbf_kernel_fast(X: np.ndarray, sigma: float) -> np.ndarray:
     })
 
 
-def rbf_kernel_fast_test(X_test: np.ndarray, sigma: float, X_train: np.ndarray) -> np.ndarray:
+def rbf_kernel_fast_test(X_test, sigma, X_train):
     """Fast implementation to compute the RBF kernel for prediction. To set the number of threads, use env variable OPENBLAS_NUM_THREADS.
     Inspired by https://stackoverflow.com/questions/47271662/what-is-the-fastest-way-to-compute-an-rbf-kernel-in-python.
 
@@ -296,7 +297,7 @@ def rbf_kernel_fast_test(X_test: np.ndarray, sigma: float, X_train: np.ndarray) 
     })
 
 
-def compute_rbf_kernel(X: DataFrame, X_test: DataFrame = None) -> np.ndarray:
+def compute_rbf_kernel(X, X_test = None):
     """Extracts the RBF-GAK features and computes the RBF kernel matrix/matrices.
 
     Parameters
