@@ -13,7 +13,7 @@ This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classific
 To tackle the challenging problem of outlier detection of time series data, we propose the combination of SVDD and TGAK as kernel function.
 
 ### SVDD
-SVDD is a SOTA outlier detector that comes with a set of advantages. As it is unsupervised, it does not need lebeled data. Also, SVDD is a convex optimization problem and thus has a globally optimal solution.
+SVDD [1] is a SOTA outlier detector that comes with a set of advantages. As it is unsupervised, it does not need lebeled data. Also, SVDD is a convex optimization problem and thus has a globally optimal solution.
 ### Global Alignment Kernels
 Using GA kernels as kernel function avoids time sereies transofmraitons. Contrary to other time-series kernels, GA kernkels are positive definite.
 
@@ -30,6 +30,10 @@ GA kernels employ a modified Gaussian kernel. Therefore, setting the bandwidth <
 ```math
 \sigma = {0.1, 1, 10} * median\|x - y\| \sqrt{median x}
 ```
+
+#### Parameter <img src="https://render.githubusercontent.com/render/math?math=T">
+The triangular parameter T restricts the amount of valid alignments. Larger T values consider more alignments, whereas smaller values consider fewer alignments. 
+When two time series’ lengths differ by more than T − 1, the kernel value is 0. Setting T = 0 considers all alignments. Cuturi et al. [2] suggest to set T to a multiple of the median time series length, such as 0.2 or 0.5.
 
 ## Dependencies
 
