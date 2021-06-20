@@ -9,6 +9,28 @@ This package implements [SVDD](https://en.wikipedia.org/wiki/One-class_classific
 ```bash
 	pip install git+https://github.com/thiessenh/tsvdd.git@main
 ```
+## Overview
+To tackle the challenging problem of outlier detection of time series data, we propose the combination of SVDD and TGAK as kernel function.
+
+### SVDD
+SVDD is a SOTA outlier detector that comes with a set of advantages. As it is unsupervised, it does not need lebeled data. Also, SVDD is a convex optimization problem and thus has a globally optimal solution.
+### Global Alignment Kernels
+Using GA kernels as kernel function avoids time sereies transofmraitons. Contrary to other time-series kernels, GA kernkels are positive definite.
+
+### Choosing parameters <img src="https://render.githubusercontent.com/render/math?math=C">, <img src="https://render.githubusercontent.com/render/math?math=\sigma">, and <img src="https://render.githubusercontent.com/render/math?math=T">.
+
+#### Parameter <img src="https://render.githubusercontent.com/render/math?math=C">
+C is SVDD’s trade-off parameter, also referred to as cost parameter. It allows us to set the ratio of training data regarded as outliers.
+```math
+C = \frac{1}{\nu |X|}
+```
+
+#### Parameter <img src="https://render.githubusercontent.com/render/math?math=\sigma">
+GA kernels employ a modified Gaussian kernel. Therefore, setting the bandwidth <img src="https://render.githubusercontent.com/render/math?math=\sigma"> is specific to the problem at hand. Cuturi et al. [2] suggest to set σ depending on the complexity and length of the time series x and y:
+```math
+\sigma = {0.1, 1, 10} * median\|x - y\| \sqrt{median x}
+```
+
 ## Dependencies
 
 - Python >=3.6
