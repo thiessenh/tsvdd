@@ -51,3 +51,8 @@ When two time series’ lengths differ by more than T − 1, the kernel value is
 
 [docs-img]: https://img.shields.io/badge/docs-master-blue.svg
 [docs-url]: https://thiessenh.github.io/tsvdd/
+
+## References 
+[1] Tax, D. M., & Duin, R. P. (2004). Support vector data description. Machine learning, 54(1), 45-66.
+
+[2] Cuturi, M. (2011). Fast global alignment kernels. In Proceedings of the 28th international conference on machine learning (ICML-11) (pp. 929-936).
