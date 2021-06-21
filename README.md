@@ -21,9 +21,9 @@ See `examples/example_netbook.ipynb` for a more detailed illustration.
 To tackle the challenging problem of outlier detection of time series data, we propose the combination of SVDD and TGAK as kernel function.
 
 ### SVDD
-SVDD [1] is a SOTA outlier detector that comes with a set of advantages. As it is unsupervised, it does not need lebeled data. Also, SVDD is a convex optimization problem and thus has a globally optimal solution.
+SVDD [1] is a SOTA outlier detector that comes with a set of advantages. As it is unsupervised, it does not need labeled data. Also, SVDD is a convex optimization problem and thus has a globally optimal solution.
 ### Global Alignment Kernels
-Using GA kernels as kernel function avoids time sereies transofmraitons. Contrary to other time-series kernels, GA kernkels are positive definite.
+Using GA kernels as kernel function avoids time series transformations. Contrary to other time-series kernels, GA kernels are positive definite.
 
 ### Choosing parameters <img src="https://render.githubusercontent.com/render/math?math=C">, <img src="https://render.githubusercontent.com/render/math?math=\sigma">, and <img src="https://render.githubusercontent.com/render/math?math=T">.
 
@@ -40,8 +40,8 @@ GA kernels employ a modified Gaussian kernel. Therefore, setting the bandwidth <
 ```
 
 #### Parameter <img src="https://render.githubusercontent.com/render/math?math=T">
-The triangular parameter T restricts the amount of valid alignments. Larger T values consider more alignments, whereas smaller values consider fewer alignments. 
-When two time series’ lengths differ by more than T − 1, the kernel value is 0. Setting T = 0 considers all alignments. Cuturi et al. [2] suggest to set T to a multiple of the median time series length, such as 0.2 or 0.5.
+The triangular parameter T restricts the number of valid alignments. Larger T values consider more alignments, whereas smaller values consider fewer alignments. 
+When two time series’ lengths differ by more than T − 1, the kernel value is 0. Setting T = 0 considers all alignments. Cuturi et al. [2] suggest setting T to a multiple of the median time series length, such as 0.2 or 0.5.
 
 ## Dependencies
 
