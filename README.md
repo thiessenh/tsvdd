@@ -16,7 +16,7 @@ svdd = SVDD(nu=0.05, sigma='auto') # set C according to 5% outlier, determine \s
 svdd.fit(X) # train SVDD
 y_pred = svdd.predict(X) # predict, a -1 label indicates outliers
 ```
-See `examples/example_netbook.ipynb` for a more detailed illustration.
+See `notebooks/example_notebook.ipynb` for a more detailed illustration.
 ## Overview
 To tackle the challenging problem of outlier detection of time series data, we propose the combination of SVDD and TGAK as kernel function.
 
