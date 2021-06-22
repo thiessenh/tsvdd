@@ -3,16 +3,17 @@ import matplotlib.pyplot as plt
 import numexpr as ne
 from tsfresh import extract_features
 from tsfresh.utilities.dataframe_functions import impute
+from scipy.stats import zscore
 
-rbf_gak_features = {'agg_linear_trend': [{'attr': 'stderr', 'chunk_len': 5, 'f_agg': 'min'},
+rbf_gak_features = {'agg_linear_trend': [{'attr': 'stderr', 'chunk_len': 5, 'f_agg': 'mean'},
                                          {'attr': 'rvalue', 'chunk_len': 10,
-                                             'f_agg': 'mean'},
-                                         {'attr': 'slope', 'chunk_len': 50, 'f_agg': 'min'}],
-                    'change_quantiles': [{'f_agg': 'var', 'isabs': True, 'qh': 1.0, 'ql': 0.0},
-                                         {'f_agg': 'mean', 'isabs': True, 'qh': 1.0, 'ql': 0.4}]}
+                                             'f_agg': 'var'},
+                                         {'attr': 'slope', 'chunk_len': 50, 'f_agg': 'mean'}],
+                    'change_quantiles': [{'f_agg': 'mean', 'isabs': False, 'qh': 0.4, 'ql': 0.2},
+                                         {'f_agg': 'var', 'isabs': True, 'qh': 1.0, 'ql': 0.4}]}
 
 
-def sampled_gak_sigma(X, n_samples, random_state = None, multipliers=None):
+def sampled_gak_sigma(X, n_samples, random_state=None, multipliers=None):
     """Estimate optimal sigma according to Cuturi's Rule. When `multipliers` is specified, sigma multiples are returned.
     Otherwise, multiples in [0.1, 1, 2, 5, 10] are returned.
 
@@ -297,7 +298,7 @@ def rbf_kernel_fast_test(X_test, sigma, X_train):
     })
 
 
-def compute_rbf_kernel(X, X_test = None):
+def compute_rbf_kernel(X, X_test=None):
     """Extracts the RBF-GAK features and computes the RBF kernel matrix/matrices.
 
     Parameters
@@ -316,36 +317,34 @@ def compute_rbf_kernel(X, X_test = None):
     n_instances = X.shape[0]
 
     X["id"] = X.index
-    X = X.melt(id_vars="id", var_name="time").sort_values(
-        ["id", "time"]).reset_index(drop=True)
+    X = X.melt(id_vars="id", var_name="time")
+    X["time"] = X["time"].astype(int)
+    X = X.sort_values(["id", "time"]).reset_index(drop=True)
+
     X_features = extract_features(X, default_fc_parameters=rbf_gak_features,
                                   column_id="id", column_sort="time", impute_function=impute, disable_progressbar=True)
-    X_features = X_features.apply(normalize_0_1, axis=0).fillna(0)
+    X_features = X_features.apply(zscore, axis=0).fillna(0)
     X_features = X_features.values
-
-
 
     if X_test is not None:
         X_test["id"] = X_test.index
-        X_test = X_test.melt(id_vars="id", var_name="time").sort_values(
-            ["id", "time"]).reset_index(drop=True)
+        X_test = X_test.melt(id_vars="id", var_name="time")
+        X_test["time"] = X_test["time"].astype(int)
+        X_test = X_test.sort_values(["id", "time"]).reset_index(drop=True)
         X_test_features = extract_features(
             X_test, default_fc_parameters=rbf_gak_features, column_id="id", column_sort="time", impute_function=impute, disable_progressbar=True)
-        X_test_features = X_test_features.apply(
-            normalize_0_1, axis=0).fillna(0)
+        X_test_features = X_test_features.apply(zscore, axis=0).fillna(0)
         X_test_features = X_test_features.values
 
     K_s = []
     if X_test is not None:
         for train, test in zip(X_features.T, X_test_features.T):
-            f_sigma = (n_instances ** (-1 / (1 + 4))) * \
-                np.std(train.reshape((-1, 1)))
+            f_sigma = n_instances ** (-1 / (1 + 4))
             K_s.append(rbf_kernel_fast_test(test.reshape(
                 (-1, 1)), f_sigma, train.reshape((-1, 1))))
     else:
         for train in X_features.T:
-            f_sigma = (n_instances ** (-1 / (1 + 4))) * \
-                np.std(train.reshape((-1, 1)))
+            f_sigma = n_instances ** (-1 / (1 + 4))
             K_s.append(rbf_kernel_fast(train.reshape((-1, 1)), f_sigma))
 
     K_s = np.stack(K_s)
